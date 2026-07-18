@@ -11,7 +11,10 @@ AtlayaView scans one or more drives and turns used storage into an instantly rea
 
 **Website:** https://atlaya.capecter.com  
 **Source Repository:** https://github.com/Morfyuum/AtlayaView  
-**Public Downloads:** https://atlaya.capecter.com
+**Releases:** https://github.com/Morfyuum/AtlayaView/releases  
+**Public Downloads:**  
+Full: https://github.com/Morfyuum/AtlayaView/releases/download/v2.0.15/AtlayaView-2.0.15-win-x64-full.zip  
+FX: https://github.com/Morfyuum/AtlayaView/releases/download/v2.0.15/AtlayaView-2.0.15-win-x64-fx.zip
 
 ![AtlayaView logo](Resources/atlaya.png)
 
@@ -78,9 +81,10 @@ pwsh -File .\build-hybrid.ps1 -Configuration Release
 
 ## Downloads
 
-Public releases and website downloads are published through the Atlaya website:
+Current public downloads:
 
-https://atlaya.capecter.com
+- Full: [AtlayaView-2.0.15-win-x64-full.zip](https://github.com/Morfyuum/AtlayaView/releases/download/v2.0.15/AtlayaView-2.0.15-win-x64-full.zip)
+- FX: [AtlayaView-2.0.15-win-x64-fx.zip](https://github.com/Morfyuum/AtlayaView/releases/download/v2.0.15/AtlayaView-2.0.15-win-x64-fx.zip)
 
 ## Releases
 
@@ -89,19 +93,9 @@ AtlayaView uses two Windows release variants:
 - Full: self-contained package with the .NET runtime included.
 - FX: framework-dependent package for systems that already have .NET 9 installed.
 
-Current public downloads are distributed via the Atlaya website. GitHub is prepared as the source repository and can also host future public releases once the repository is made public.
+All public releases are published on GitHub:
 
-Typical release flow:
-
-1. Update the version in [AtlayaView.csproj](AtlayaView.csproj).
-2. Build both release variants with [build-hybrid.ps1](build-hybrid.ps1).
-3. Package the cleaned public ZIP files.
-4. Publish the artifacts and release notes.
-
-Expected artifact names for release publishing:
-
-- AtlayaView-<version>-win-x64-full.zip
-- AtlayaView-<version>-win-x64-fx.zip
+https://github.com/Morfyuum/AtlayaView/releases
 
 ## License
 
