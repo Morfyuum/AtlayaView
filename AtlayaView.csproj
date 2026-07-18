@@ -14,10 +14,10 @@
     <Platforms>x64</Platforms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Resources\atlaya.ico</ApplicationIcon>
-    <Version>2.0.15</Version>
-    <AssemblyVersion>2.0.15.0</AssemblyVersion>
-    <FileVersion>2.0.15.0</FileVersion>
-    <InformationalVersion>2.0.15</InformationalVersion>
+    <Version>2.0.16</Version>
+    <AssemblyVersion>2.0.16.0</AssemblyVersion>
+    <FileVersion>2.0.16.0</FileVersion>
+    <InformationalVersion>2.0.16</InformationalVersion>
     <DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildProjectDirectory)\obj\**;$(MSBuildProjectDirectory)\bin\**;$(MSBuildProjectDirectory)\dist\publish\**;$(MSBuildProjectDirectory)\.artifacts\**</DefaultItemExcludes>
     <Company>AtlayaView</Company>
     <Product>AtlayaView – Fast Disk Visualizer</Product>

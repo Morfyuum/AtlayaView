@@ -1,5 +1,18 @@
 # AtlayaView Release Notes
 
+## 2.0.16 - 2026-07-18
+
+- Öffentlicher Release-Kanal auf GitHub umgestellt: Das Repository ist jetzt öffentlich, die Download-ZIPs liegen als GitHub Releases vor, und die AtlayaView-Webseite verweist für die aktuelle Version direkt auf diese Release-Artefakte.
+- Die In-App-Update-Prüfung bleibt über den maschinenlesbaren Feed auf atlaya.capecter.com angebunden, lädt die eigentlichen Update-Dateien ab dieser Version aber aus den GitHub-Releases. Webseite, GitHub-Release und Update-Feed zeigen jetzt konsistent auf dieselben Full-/FX-Pakete.
+- Release-Version auf 2.0.16 angehoben in .NET-Projekt und Rust-Renderer.
+
+## Artefakte
+
+- EXE: `dist/publish/AtlayaView-2.0.16-win-x64/AtlayaView.exe` (mit .NET, self-contained)
+- EXE: `dist/publish/AtlayaView-2.0.16-win-x64-fx/AtlayaView.exe` (ohne .NET, framework-dependent)
+- ZIP: `dist/AtlayaView-2.0.16-win-x64.zip`, `dist/AtlayaView-2.0.16-win-x64-fx.zip`
+- Native DLL: `dist/publish/AtlayaView-2.0.16-win-x64/atlaya_renderer.dll`
+
 ## 2.0.13 - 2026-07-15
 
 - Wichtiger Bugfix: Nach Abbruch eines Scans („Scan abbrechen") oder einem Scan-Fehler blieb
