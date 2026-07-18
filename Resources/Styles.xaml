@@ -1,0 +1,468 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- ===== Farben ===== -->
+  <Color x:Key="BgDeepColor">#FF1A1A2E</Color>
+  <Color x:Key="BgPanelColor">#FF16213E</Color>
+  <Color x:Key="BgToolbarColor">#FF0F3460</Color>
+  <Color x:Key="AccentColor">#FFE94560</Color>
+  <Color x:Key="Accent2Color">#FF533483</Color>
+  <Color x:Key="TextPrimaryColor">#FFECF0F1</Color>
+  <Color x:Key="TextSecondaryColor">#FFB0BEC5</Color>
+  <Color x:Key="BorderColor">#FF2D2D4E</Color>
+  <Color x:Key="HoverColor">#FF2D3561</Color>
+
+  <SolidColorBrush x:Key="BgDeepBrush"       Color="{StaticResource BgDeepColor}"/>
+  <SolidColorBrush x:Key="BgPanelBrush"      Color="{StaticResource BgPanelColor}"/>
+  <SolidColorBrush x:Key="BgToolbarBrush"    Color="{StaticResource BgToolbarColor}"/>
+  <SolidColorBrush x:Key="AccentBrush"       Color="{StaticResource AccentColor}"/>
+  <SolidColorBrush x:Key="Accent2Brush"      Color="{StaticResource Accent2Color}"/>
+  <SolidColorBrush x:Key="TextPrimaryBrush"  Color="{StaticResource TextPrimaryColor}"/>
+  <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}"/>
+  <SolidColorBrush x:Key="BorderBrush2"       Color="{StaticResource BorderColor}"/>
+  <SolidColorBrush x:Key="HoverBrush"         Color="{StaticResource HoverColor}"/>
+  <SolidColorBrush x:Key="TransparentBrush"   Color="Transparent"/>
+
+  <!-- ===== Basis-Window ===== -->
+  <Style TargetType="Window">
+    <Setter Property="Background" Value="{StaticResource BgDeepBrush}"/>
+    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+    <Setter Property="FontFamily" Value="Segoe UI"/>
+    <Setter Property="FontSize"   Value="13"/>
+  </Style>
+
+  <!-- ===== Button ===== -->
+  <Style x:Key="ToolButtonStyle" TargetType="Button">
+    <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="Background"   Value="Transparent"/>
+    <Setter Property="Foreground"   Value="{StaticResource TextPrimaryBrush}"/>
+    <Setter Property="BorderBrush"  Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding"      Value="10,5"/>
+    <Setter Property="FontSize"     Value="13"/>
+    <Setter Property="FontFamily"   Value="Segoe UI"/>
+    <Setter Property="Cursor"       Value="Hand"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="border"
+                  Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="4"
+                  Padding="{TemplateBinding Padding}">
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="border" Property="Background" Value="{StaticResource HoverBrush}"/>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="border" Property="Background" Value="{StaticResource Accent2Brush}"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.4"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style x:Key="AccentButtonStyle" TargetType="Button" BasedOn="{StaticResource ToolButtonStyle}">
+    <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+  </Style>
+
+  <!-- Legende-Button: transparent, kein Rand, Hand-Cursor, gedimmte Variante via Opacity-Trigger -->
+  <Style x:Key="LegendButtonStyle" TargetType="Button">
+    <Setter Property="Background"      Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding"         Value="2,1"/>
+    <Setter Property="Cursor"          Value="Hand"/>
+    <Setter Property="Opacity"         Value="1"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="bd" Background="Transparent" CornerRadius="3"
+                  Padding="{TemplateBinding Padding}">
+            <ContentPresenter/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="bd" Property="Background" Value="{StaticResource HoverBrush}"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== ComboBox ===== -->
+  <Style TargetType="ComboBox">
+    <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="Background"      Value="{StaticResource BgPanelBrush}"/>
+    <Setter Property="Foreground"      Value="{StaticResource TextPrimaryBrush}"/>
+    <Setter Property="BorderBrush"     Value="{StaticResource BorderBrush2}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="Padding"         Value="6,4"/>
+    <Setter Property="FontFamily"      Value="Segoe UI"/>
+    <Setter Property="FontSize"        Value="13"/>
+    <Setter Property="Cursor"          Value="Hand"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ComboBox">
+          <Grid>
+            <!-- ToggleButton traegt den Klick-zum-Oeffnen-Vertrag von ComboBox (IsDropDownOpen
+                 ist eine reine TemplateBinding-Zielgroesse, ohne ToggleButton setzt sie nie
+                 jemand, das Popup bleibt dauerhaft geschlossen). -->
+            <ToggleButton x:Name="ToggleButton"
+                          Focusable="False"
+                          ClickMode="Press"
+                          IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+              <ToggleButton.Template>
+                <ControlTemplate TargetType="ToggleButton">
+                  <Border x:Name="bd"
+                          Background="{Binding Path=Background, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                          BorderBrush="{Binding Path=BorderBrush, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                          BorderThickness="{Binding Path=BorderThickness, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                          CornerRadius="4"/>
+                  <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                      <Setter TargetName="bd" Property="Background" Value="{StaticResource HoverBrush}"/>
+                    </Trigger>
+                  </ControlTemplate.Triggers>
+                </ControlTemplate>
+              </ToggleButton.Template>
+            </ToggleButton>
+
+            <Grid IsHitTestVisible="False" Margin="{TemplateBinding Padding}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="22"/>
+              </Grid.ColumnDefinitions>
+              <ContentPresenter Grid.Column="0"
+                                Content="{TemplateBinding SelectionBoxItem}"
+                                ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                VerticalAlignment="Center"/>
+              <TextBlock Grid.Column="1" Text="▾" VerticalAlignment="Center"
+                         HorizontalAlignment="Center"
+                         Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+            </Grid>
+
+            <Popup x:Name="PART_Popup" AllowsTransparency="True" IsOpen="{TemplateBinding IsDropDownOpen}"
+                   Placement="Bottom" PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                   PopupAnimation="Fade">
+              <Border Background="{StaticResource BgPanelBrush}"
+                      BorderBrush="{StaticResource BorderBrush2}" BorderThickness="1"
+                      CornerRadius="4" Margin="0,2,0,0" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ComboBox}}">
+                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                  <ItemsPresenter/>
+                </ScrollViewer>
+              </Border>
+            </Popup>
+          </Grid>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style TargetType="ComboBoxItem">
+    <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="Background"      Value="Transparent"/>
+    <Setter Property="Foreground"      Value="{StaticResource TextPrimaryBrush}"/>
+    <Setter Property="Padding"         Value="8,5"/>
+    <Setter Property="FontFamily"      Value="Segoe UI"/>
+    <Setter Property="FontSize"        Value="13"/>
+    <Setter Property="Cursor"          Value="Hand"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ComboBoxItem">
+          <Border x:Name="bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+            <ContentPresenter/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsHighlighted" Value="True">
+              <Setter TargetName="bd" Property="Background" Value="{StaticResource HoverBrush}"/>
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+              <Setter TargetName="bd" Property="Background" Value="{StaticResource Accent2Brush}"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== ProgressBar ===== -->
+  <Style TargetType="ProgressBar">
+    <Setter Property="Background" Value="{StaticResource BgPanelBrush}"/>
+    <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush2}"/>
+    <Setter Property="Height" Value="6"/>
+  </Style>
+
+  <!-- ===== TextBlock ===== -->
+  <Style TargetType="TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+    <Setter Property="FontFamily" Value="Segoe UI"/>
+  </Style>
+
+  <!-- ===== Separator ===== -->
+  <Style TargetType="Separator">
+    <Setter Property="Background" Value="{StaticResource BorderBrush2}"/>
+    <Setter Property="Height"     Value="1"/>
+    <Setter Property="Margin"     Value="6,3"/>
+  </Style>
+
+  <!-- ===== ScrollBar ===== -->
+  <Style TargetType="ScrollBar">
+    <Setter Property="Background" Value="{StaticResource BgDeepBrush}"/>
+  </Style>
+
+  <!-- ===== ToolTip – dunkles Theme ===== -->
+  <Style TargetType="ToolTip">
+    <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="Background"   Value="{StaticResource BgPanelBrush}"/>
+    <Setter Property="Foreground"   Value="{StaticResource TextPrimaryBrush}"/>
+    <Setter Property="BorderBrush"  Value="{StaticResource BorderBrush2}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="Padding"      Value="8,4"/>
+    <Setter Property="FontFamily"   Value="Segoe UI"/>
+    <Setter Property="FontSize"     Value="12"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ToolTip">
+          <Border Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="4"
+                  Padding="{TemplateBinding Padding}">
+            <ContentPresenter/>
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== TextBox ===== -->
+  <Style TargetType="TextBox">
+    <Setter Property="Background"        Value="{StaticResource BgPanelBrush}"/>
+    <Setter Property="Foreground"        Value="{StaticResource TextPrimaryBrush}"/>
+    <Setter Property="BorderBrush"       Value="{StaticResource BorderBrush2}"/>
+    <Setter Property="BorderThickness"   Value="1"/>
+    <Setter Property="Padding"           Value="6,4"/>
+    <Setter Property="FontFamily"        Value="Segoe UI"/>
+    <Setter Property="FontSize"          Value="13"/>
+    <Setter Property="CaretBrush"        Value="{StaticResource TextPrimaryBrush}"/>
+    <Setter Property="SelectionBrush"    Value="{StaticResource AccentBrush}"/>
+  </Style>
+
+  <!-- ===== CheckBox ===== -->
+  <Style TargetType="CheckBox">
+    <Setter Property="Foreground"   Value="{StaticResource TextPrimaryBrush}"/>
+    <Setter Property="FontFamily"   Value="Segoe UI"/>
+    <Setter Property="FontSize"     Value="13"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+
+  <!-- ===== Slider ===== -->
+  <Style TargetType="Slider">
+    <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+  </Style>
+
+  <!-- ===== ListBox ===== -->
+  <Style TargetType="ListBox">
+    <Setter Property="Background"      Value="{StaticResource BgPanelBrush}"/>
+    <Setter Property="Foreground"      Value="{StaticResource TextPrimaryBrush}"/>
+    <Setter Property="BorderBrush"     Value="{StaticResource BorderBrush2}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="FontFamily"      Value="Segoe UI"/>
+    <Setter Property="FontSize"        Value="13"/>
+    <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+  </Style>
+  <Style TargetType="ListBoxItem">
+    <Setter Property="Background"       Value="Transparent"/>
+    <Setter Property="Foreground"       Value="{StaticResource TextPrimaryBrush}"/>
+    <Setter Property="Padding"          Value="8,4"/>
+    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+    <Style.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{StaticResource HoverBrush}"/>
+      </Trigger>
+      <Trigger Property="IsSelected" Value="True">
+        <Setter Property="Background" Value="{StaticResource Accent2Brush}"/>
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- ===== Label ===== -->
+  <Style TargetType="Label">
+    <Setter Property="Foreground"  Value="{StaticResource TextPrimaryBrush}"/>
+    <Setter Property="FontFamily"  Value="Segoe UI"/>
+    <Setter Property="FontSize"    Value="13"/>
+    <Setter Property="Padding"     Value="0"/>
+  </Style>
+
+  <!-- ===== Dialog-Window Basis-Style ===== -->
+  <Style x:Key="DialogWindowStyle" TargetType="Window">
+    <Setter Property="Background"  Value="{StaticResource BgDeepBrush}"/>
+    <Setter Property="Foreground"  Value="{StaticResource TextPrimaryBrush}"/>
+    <Setter Property="FontFamily"  Value="Segoe UI"/>
+    <Setter Property="FontSize"    Value="13"/>
+    <Setter Property="ResizeMode"  Value="NoResize"/>
+    <Setter Property="ShowInTaskbar" Value="False"/>
+  </Style>
+
+  <!-- ===== ContextMenu – dunkles Theme ===== -->
+  <Style TargetType="ContextMenu">
+    <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="SnapsToDevicePixels"   Value="True"/>
+    <Setter Property="Background"    Value="{StaticResource BgPanelBrush}"/>
+    <Setter Property="Foreground"    Value="{StaticResource TextPrimaryBrush}"/>
+    <Setter Property="BorderBrush"   Value="{StaticResource BorderBrush2}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="Padding"       Value="2"/>
+    <Setter Property="FontFamily"    Value="Segoe UI"/>
+    <Setter Property="FontSize"      Value="13"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ContextMenu">
+          <Border Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="5"
+                  Padding="{TemplateBinding Padding}">
+            <StackPanel IsItemsHost="True"
+                        KeyboardNavigation.DirectionalNavigation="Cycle"/>
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Menu-Leiste ===== -->
+  <Style TargetType="Menu">
+    <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="Background" Value="{StaticResource BgToolbarBrush}"/>
+    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+    <Setter Property="FontFamily" Value="Segoe UI"/>
+    <Setter Property="FontSize"   Value="13"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Menu">
+          <Border Background="{TemplateBinding Background}" Padding="2,0">
+            <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== MenuItem in ContextMenu – dunkles Theme ===== -->
+  <Style TargetType="MenuItem">
+    <Setter Property="OverridesDefaultStyle"  Value="True"/>
+    <Setter Property="Background"    Value="Transparent"/>
+    <Setter Property="Foreground"    Value="{StaticResource TextPrimaryBrush}"/>
+    <Setter Property="FontFamily"    Value="Segoe UI"/>
+    <Setter Property="FontSize"      Value="13"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="MenuItem">
+          <Grid>
+            <Border x:Name="Bd"
+                    Background="{TemplateBinding Background}"
+                    BorderThickness="0"
+                    CornerRadius="3"
+                    Padding="10,5">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto"/>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="Auto"/>
+                  <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <!-- Checkmark -->
+                <TextBlock x:Name="chk" Grid.Column="0" Text="✔" Width="18" TextAlignment="Center"
+                           Visibility="Collapsed" Foreground="{StaticResource AccentBrush}"
+                           VerticalAlignment="Center" FontSize="12"/>
+                <!-- Header -->
+                <ContentPresenter Grid.Column="1"
+                                  ContentSource="Header"
+                                  RecognizesAccessKey="True"
+                                  VerticalAlignment="Center"/>
+                <!-- Tastenkürzel -->
+                <TextBlock x:Name="igt" Grid.Column="2"
+                           Text="{TemplateBinding InputGestureText}"
+                           Margin="16,0,4,0" Opacity="0.55"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           VerticalAlignment="Center" FontSize="11"/>
+                <!-- Pfeil für Untermenü -->
+                <TextBlock x:Name="arr" Grid.Column="3" Text="›"
+                           Margin="4,0,0,0" Visibility="Collapsed"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           VerticalAlignment="Center" FontSize="14"/>
+              </Grid>
+            </Border>
+            <!-- Untermenü-Popup -->
+            <Popup x:Name="PART_Popup"
+                   AllowsTransparency="True" Focusable="False"
+                   IsOpen="{TemplateBinding IsSubmenuOpen}"
+                   Placement="Bottom" PopupAnimation="Fade"
+                   PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}">
+              <Border Background="{StaticResource BgPanelBrush}"
+                      BorderBrush="{StaticResource BorderBrush2}"
+                      BorderThickness="1" CornerRadius="5" Padding="3" MinWidth="140">
+                <StackPanel IsItemsHost="True"/>
+              </Border>
+            </Popup>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <!-- Oben in der Menu-Leiste: kein Haken/Pfeil/Geste -->
+            <Trigger Property="Role" Value="TopLevelHeader">
+              <Setter TargetName="chk" Property="Visibility" Value="Collapsed"/>
+              <Setter TargetName="igt" Property="Visibility" Value="Collapsed"/>
+            </Trigger>
+            <Trigger Property="Role" Value="TopLevelItem">
+              <Setter TargetName="chk" Property="Visibility" Value="Collapsed"/>
+              <Setter TargetName="igt" Property="Visibility" Value="Collapsed"/>
+            </Trigger>
+            <!-- Untermenü mit Untermenü: Pfeil anzeigen, Popup rechts -->
+            <Trigger Property="Role" Value="SubmenuHeader">
+              <Setter TargetName="arr" Property="Visibility" Value="Visible"/>
+              <Setter TargetName="PART_Popup" Property="Placement" Value="Right"/>
+              <Setter TargetName="Bd" Property="Padding" Value="14,6"/>
+            </Trigger>
+            <!-- Einfaches Untermenü-Element -->
+            <Trigger Property="Role" Value="SubmenuItem">
+              <Setter TargetName="Bd" Property="Padding" Value="14,6"/>
+            </Trigger>
+            <!-- Haken bei aktivierten Elementen -->
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="chk" Property="Visibility" Value="Visible"/>
+            </Trigger>
+            <!-- Hover / Fokus -->
+            <Trigger Property="IsHighlighted" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{StaticResource HoverBrush}"/>
+            </Trigger>
+            <Trigger Property="IsSubmenuOpen" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{StaticResource Accent2Brush}"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.4"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Separator in ContextMenu ===== -->
+  <Style x:Key="CtxSeparatorStyle" TargetType="Separator">
+    <Setter Property="Background"    Value="{StaticResource BorderBrush2}"/>
+    <Setter Property="Height"        Value="1"/>
+    <Setter Property="Margin"        Value="6,3"/>
+    <Setter Property="Width"         Value="Auto"/>
+  </Style>
+
+</ResourceDictionary>

@@ -1,0 +1,24 @@
+# Build outputs
+bin/
+obj/
+dist/
+.artifacts/
+
+# Rust build outputs
+native/atlaya_renderer/target/
+
+# IDE and user-specific files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.rsuser
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+
+# OS files
+Thumbs.db
+Desktop.ini

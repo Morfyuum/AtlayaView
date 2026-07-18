@@ -1,0 +1,133 @@
+{
+  "folders": [
+    {
+      "name": "AtlayaView",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "terminal.integrated.env.windows": {
+      "PATH": "${env:PATH};${env:USERPROFILE}\\.cargo\\bin"
+    },
+    "files.exclude": {
+      "**/bin": true,
+      "**/obj": true,
+      "**/target": true
+    },
+    "search.exclude": {
+      "**/bin": true,
+      "**/obj": true,
+      "**/target": true
+    },
+    "rust-analyzer.check.command": "clippy",
+    "rust-analyzer.cargo.features": "all",
+    "rust-analyzer.linkedProjects": [
+      "native/atlaya_renderer/Cargo.toml"
+    ],
+    "rust-analyzer.inlayHints.bindingModeHints.enable": true,
+    "rust-analyzer.inlayHints.closingBraceHints.minLines": 10,
+    "rust-analyzer.inlayHints.closureReturnTypeHints.enable": "with_block",
+    "rust-analyzer.inlayHints.discriminantHints.enable": "fieldless",
+    "rust-analyzer.inlayHints.expressionAdjustmentHints.enable": "reborrow",
+    "rust-analyzer.inlayHints.lifetimeElisionHints.enable": "skip_trivial",
+    "rust-analyzer.inlayHints.parameterHints.enable": true,
+    "dotnet.defaultSolution": "AtlayaView.sln",
+    "[rust]": {
+      "editor.defaultFormatter": "rust-lang.rust-analyzer",
+      "editor.formatOnSave": true,
+      "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit"
+      }
+    },
+    "[toml]": {
+      "editor.defaultFormatter": "tamasfe.even-better-toml",
+      "editor.formatOnSave": true
+    },
+    "[csharp]": {
+      "editor.formatOnSave": true
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "rust-lang.rust-analyzer",
+      "vadimcn.vscode-lldb",
+      "tamasfe.even-better-toml",
+      "ms-dotnettools.csharp",
+      "ms-dotnettools.csdevkit"
+    ]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Rust: cargo check",
+        "type": "shell",
+        "command": "cargo",
+        "args": [
+          "check"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder}/native/atlaya_renderer"
+        },
+        "problemMatcher": [
+          "$rustc"
+        ],
+        "runOptions": {
+          "runOn": "folderOpen"
+        }
+      },
+      {
+        "label": "Rust: cargo clippy",
+        "type": "shell",
+        "command": "cargo",
+        "args": [
+          "clippy",
+          "--all-targets",
+          "--all-features"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder}/native/atlaya_renderer"
+        },
+        "problemMatcher": [
+          "$rustc"
+        ]
+      },
+      {
+        "label": "Rust: cargo build release",
+        "type": "shell",
+        "command": "cargo",
+        "args": [
+          "build",
+          "--release"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder}/native/atlaya_renderer"
+        },
+        "problemMatcher": [
+          "$rustc"
+        ],
+        "group": "build"
+      },
+      {
+        "label": "Hybrid: publish app",
+        "type": "shell",
+        "command": "pwsh",
+        "args": [
+          "-NoLogo",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "${workspaceFolder}/build-hybrid.ps1",
+          "-Configuration",
+          "Release"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder}"
+        },
+        "problemMatcher": [],
+        "group": "build"
+      }
+    ]
+  }
+}

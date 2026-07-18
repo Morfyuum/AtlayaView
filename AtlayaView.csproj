@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>AtlayaView</AssemblyName>
+    <RootNamespace>AtlayaView</RootNamespace>
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64</Platforms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Resources\atlaya.ico</ApplicationIcon>
+    <Version>2.0.15</Version>
+    <AssemblyVersion>2.0.15.0</AssemblyVersion>
+    <FileVersion>2.0.15.0</FileVersion>
+    <InformationalVersion>2.0.15</InformationalVersion>
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildProjectDirectory)\obj\**;$(MSBuildProjectDirectory)\bin\**;$(MSBuildProjectDirectory)\dist\publish\**;$(MSBuildProjectDirectory)\.artifacts\**</DefaultItemExcludes>
+    <Company>AtlayaView</Company>
+    <Product>AtlayaView – Fast Disk Visualizer</Product>
+    <Description>Schnelle Festplatten-Visualisierung mit Cushion-Treemaps</Description>
+    <Optimize>true</Optimize>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <NoWarn>WFO0003</NoWarn>
+    <!-- Self-contained publish: alle .NET-Laufzeitbibliotheken eingebettet -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <RustProjectDir>$(MSBuildProjectDirectory)\native\atlaya_renderer</RustProjectDir>
+    <RustLibraryPath>$(RustProjectDir)\target\release\atlaya_renderer.dll</RustLibraryPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\atlaya.png" />
+  </ItemGroup>
+
+  <Target Name="BuildRustRenderer" BeforeTargets="BeforeBuild;Publish">
+    <Exec Command="cargo build --release" WorkingDirectory="$(RustProjectDir)" />
+  </Target>
+
+  <Target Name="CopyRustRendererToOutput" AfterTargets="Build" Condition="Exists('$(RustLibraryPath)')">
+    <Copy SourceFiles="$(RustLibraryPath)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopyRustRendererToPublish" AfterTargets="Publish" Condition="Exists('$(RustLibraryPath)')">
+    <Copy SourceFiles="$(RustLibraryPath)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

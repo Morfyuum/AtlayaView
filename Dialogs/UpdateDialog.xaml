@@ -1,0 +1,38 @@
+<Window x:Class="AtlayaView.Dialogs.UpdateDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:app="clr-namespace:AtlayaView"
+        Title="{Binding UpdateDlgTitle, Source={x:Static app:App.Loc}}"
+        Width="440" Height="280"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BgDeepBrush}"
+        ResizeMode="NoResize" ShowInTaskbar="False">
+
+  <DockPanel Margin="22,18,22,16">
+
+    <TextBlock DockPanel.Dock="Top"
+               Text="{Binding UpdateDlgTitle, Source={x:Static app:App.Loc}}"
+               FontSize="15" FontWeight="SemiBold"
+               Foreground="{StaticResource AccentBrush}"
+               Margin="0,0,0,16"/>
+
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                HorizontalAlignment="Right" Margin="0,16,0,0">
+      <Button x:Name="btnApply"
+              Content="{Binding UpdateDlgApplyNow, Source={x:Static app:App.Loc}}"
+              Style="{StaticResource AccentButtonStyle}"
+              Padding="18,7" Margin="0,0,8,0"
+              Visibility="Collapsed" Click="BtnApply_Click"/>
+      <Button Content="{Binding BtnCancelDialog, Source={x:Static app:App.Loc}}"
+              Style="{StaticResource ToolButtonStyle}"
+              Padding="18,7" IsCancel="True" IsDefault="True"/>
+    </StackPanel>
+
+    <StackPanel VerticalAlignment="Top">
+      <TextBlock x:Name="txtCurrent" Margin="0,0,0,10"/>
+      <TextBlock x:Name="txtStatus" TextWrapping="Wrap" Margin="0,0,0,10"/>
+      <TextBlock x:Name="txtNotes" TextWrapping="Wrap" FontSize="12"
+                 Foreground="{StaticResource TextSecondaryBrush}"/>
+    </StackPanel>
+  </DockPanel>
+</Window>

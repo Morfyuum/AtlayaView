@@ -1,0 +1,131 @@
+<Window x:Class="AtlayaView.Dialogs.OptionsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:app="clr-namespace:AtlayaView"
+        Title="{Binding OptWindowTitle, Source={x:Static app:App.Loc}}"
+        Width="460" Height="560" MinHeight="360"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BgDeepBrush}"
+        ResizeMode="CanResizeWithGrip" ShowInTaskbar="False">
+
+  <DockPanel Margin="22,18,22,16">
+
+    <!-- Titel -->
+    <TextBlock DockPanel.Dock="Top"
+               Text="{Binding OptDialogTitle, Source={x:Static app:App.Loc}}"
+               FontSize="15" FontWeight="SemiBold"
+               Foreground="{StaticResource AccentBrush}"
+               Margin="0,0,0,20"/>
+
+    <!-- Buttons unten -->
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                HorizontalAlignment="Right" Margin="0,16,0,0">
+      <Button x:Name="btnDefaults" Content="{Binding BtnDefaults, Source={x:Static app:App.Loc}}"
+              Style="{StaticResource ToolButtonStyle}"
+              Padding="16,7" Margin="0,0,8,0" Click="BtnDefaults_Click"
+              Foreground="{StaticResource TextSecondaryBrush}"/>
+      <Button Content="{Binding BtnCancelDialog, Source={x:Static app:App.Loc}}" Style="{StaticResource ToolButtonStyle}"
+              Padding="16,7" Margin="0,0,8,0" IsCancel="True"/>
+      <Button Content="{Binding BtnOkText, Source={x:Static app:App.Loc}}" Style="{StaticResource AccentButtonStyle}"
+              Padding="24,7" IsDefault="True" Click="BtnOk_Click"/>
+    </StackPanel>
+
+    <!-- Einstellungen -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Margin="0,0,10,0">
+
+      <!-- Kissenintensität -->
+      <StackPanel Margin="0,0,0,16">
+        <DockPanel>
+          <TextBlock Text="{Binding OptCushionHeight, Source={x:Static app:App.Loc}}" FontWeight="SemiBold" DockPanel.Dock="Left"/>
+          <TextBlock x:Name="lblCushionHeight" HorizontalAlignment="Right"
+                     Foreground="{StaticResource TextSecondaryBrush}"/>
+        </DockPanel>
+        <Slider x:Name="slCushionHeight" Margin="0,6,0,0"
+                Minimum="0.1" Maximum="1.0" SmallChange="0.05" LargeChange="0.1"
+                TickFrequency="0.05" IsSnapToTickEnabled="True"
+                ValueChanged="SlCushionHeight_Changed"/>
+        <TextBlock Text="{Binding OptCushionHeightHint, Source={x:Static app:App.Loc}}"
+                   FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+      </StackPanel>
+
+      <!-- Kissendämpfung -->
+      <StackPanel Margin="0,0,0,16">
+        <DockPanel>
+          <TextBlock Text="{Binding OptCushionDecay, Source={x:Static app:App.Loc}}" FontWeight="SemiBold" DockPanel.Dock="Left"/>
+          <TextBlock x:Name="lblCushionDecay" HorizontalAlignment="Right"
+                     Foreground="{StaticResource TextSecondaryBrush}"/>
+        </DockPanel>
+        <Slider x:Name="slCushionDecay" Margin="0,6,0,0"
+                Minimum="0.30" Maximum="0.95" SmallChange="0.05" LargeChange="0.1"
+                TickFrequency="0.05" IsSnapToTickEnabled="True"
+                ValueChanged="SlCushionDecay_Changed"/>
+        <TextBlock Text="{Binding OptCushionDecayHint, Source={x:Static app:App.Loc}}"
+                   FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+      </StackPanel>
+
+      <!-- Umgebungslicht -->
+      <StackPanel Margin="0,0,0,16">
+        <DockPanel>
+          <TextBlock Text="{Binding OptAmbientLight, Source={x:Static app:App.Loc}}" FontWeight="SemiBold" DockPanel.Dock="Left"/>
+          <TextBlock x:Name="lblAmbientLight" HorizontalAlignment="Right"
+                     Foreground="{StaticResource TextSecondaryBrush}"/>
+        </DockPanel>
+        <Slider x:Name="slAmbientLight" Margin="0,6,0,0"
+                Minimum="0.05" Maximum="0.50" SmallChange="0.05" LargeChange="0.1"
+                TickFrequency="0.05" IsSnapToTickEnabled="True"
+                ValueChanged="SlAmbientLight_Changed"/>
+        <TextBlock Text="{Binding OptAmbientLightHint, Source={x:Static app:App.Loc}}"
+                   FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+      </StackPanel>
+
+      <!-- Minimale Pixelgröße -->
+      <StackPanel Margin="0,0,0,16">
+        <DockPanel>
+          <TextBlock Text="{Binding OptMinPixel, Source={x:Static app:App.Loc}}" FontWeight="SemiBold" DockPanel.Dock="Left"/>
+          <TextBlock x:Name="lblMinPixel" HorizontalAlignment="Right"
+                     Foreground="{StaticResource TextSecondaryBrush}"/>
+        </DockPanel>
+        <Slider x:Name="slMinPixel" Margin="0,6,0,0"
+                Minimum="1" Maximum="6" SmallChange="1" LargeChange="1"
+                TickFrequency="1" IsSnapToTickEnabled="True"
+                ValueChanged="SlMinPixel_Changed"/>
+        <TextBlock Text="{Binding OptMinPixelHint, Source={x:Static app:App.Loc}}"
+                   FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+      </StackPanel>
+
+      <!-- Verzeichnisrahmen -->
+      <CheckBox x:Name="chkBorders" Content="{Binding OptDrawBorders, Source={x:Static app:App.Loc}}" Margin="0,4,0,0"/>
+
+      <!-- Freier Speicher als Kissen -->
+      <CheckBox x:Name="chkFreeSpaceCushion"
+                Content="{Binding OptFreeSpaceCushion, Source={x:Static app:App.Loc}}"
+                Margin="0,8,0,0"/>
+      <TextBlock Text="Zeigt ungenutzten Platz rechts der Dateien als eigenes Feld"
+                 FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="20,2,0,0"/>
+
+      <!-- Updates -->
+      <Separator Margin="0,16,0,14"/>
+      <TextBlock Text="{Binding OptUpdateSectionTitle, Source={x:Static app:App.Loc}}"
+                 FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" Margin="0,0,0,10"/>
+
+      <TextBlock Text="{Binding OptUpdateMode, Source={x:Static app:App.Loc}}" Margin="0,0,0,4"/>
+      <ComboBox x:Name="cmbUpdateMode" Margin="0,0,0,12">
+        <ComboBoxItem Content="{Binding OptUpdateModeManual, Source={x:Static app:App.Loc}}"/>
+        <ComboBoxItem Content="{Binding OptUpdateModeAutoCheck, Source={x:Static app:App.Loc}}"/>
+        <ComboBoxItem Content="{Binding OptUpdateModeAutoApply, Source={x:Static app:App.Loc}}"/>
+      </ComboBox>
+
+      <TextBlock Text="{Binding OptUpdateInterval, Source={x:Static app:App.Loc}}" Margin="0,0,0,4"/>
+      <ComboBox x:Name="cmbUpdateInterval">
+        <ComboBoxItem Content="{Binding OptUpdateIntervalDaily, Source={x:Static app:App.Loc}}"/>
+        <ComboBoxItem Content="{Binding OptUpdateIntervalWeekly, Source={x:Static app:App.Loc}}"/>
+        <ComboBoxItem Content="{Binding OptUpdateIntervalMonthly, Source={x:Static app:App.Loc}}"/>
+        <ComboBoxItem Content="{Binding OptUpdateIntervalYearly, Source={x:Static app:App.Loc}}"/>
+      </ComboBox>
+
+    </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>
+

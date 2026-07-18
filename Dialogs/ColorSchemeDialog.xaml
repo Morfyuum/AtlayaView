@@ -1,0 +1,272 @@
+<Window x:Class="AtlayaView.Dialogs.ColorSchemeDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:app="clr-namespace:AtlayaView"
+        Title="{Binding ColorWindowTitle, Source={x:Static app:App.Loc}}"
+        Width="700" Height="640"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BgDeepBrush}"
+        ShowInTaskbar="False">
+
+  <Window.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolVis"/>
+  </Window.Resources>
+
+  <Grid Margin="16,14,16,14">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <!-- Titel -->
+    <TextBlock Grid.Row="0"
+               Text="{Binding ColorDialogTitle, Source={x:Static app:App.Loc}}"
+               FontSize="15" FontWeight="SemiBold"
+               Foreground="{StaticResource AccentBrush}"
+               Margin="0,0,0,12"/>
+
+    <!-- Haupt-Inhalt: Erweiterungsliste + Farbwähler -->
+    <Grid Grid.Row="1">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="220"/>
+        <ColumnDefinition Width="12"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+
+      <!-- Linke Seite: Suche + Liste -->
+      <DockPanel Grid.Column="0">
+        <!-- Suche mit lokalisiertem Placeholder -->
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,6">
+          <TextBox x:Name="txtSearch"
+                   Text="" TextChanged="TxtSearch_Changed"/>
+          <TextBlock x:Name="txtSearchHint"
+                     Text="{Binding ColorSearchHint, Source={x:Static app:App.Loc}}"
+                     IsHitTestVisible="False" Padding="8,5"
+                     Foreground="{StaticResource TextSecondaryBrush}">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Text, ElementName=txtSearch}" Value="">
+                    <Setter Property="Visibility" Value="Visible"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+        </Grid>
+
+        <!-- Farbprofile -->
+        <Button DockPanel.Dock="Bottom" x:Name="btnColorProfiles"
+                Content="{Binding ColorProfilesButton, Source={x:Static app:App.Loc}}"
+                ToolTip="{Binding ProfileDialogHint, Source={x:Static app:App.Loc}}"
+                Style="{StaticResource ToolButtonStyle}" Padding="8,6"
+                Margin="0,6,0,0" Click="BtnColorProfiles_Click"/>
+
+        <!-- Erweiterung hinzufügen -->
+        <Grid DockPanel.Dock="Bottom" Margin="0,8,0,0">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+          </Grid.ColumnDefinitions>
+          <Grid Grid.Column="0" Margin="0,0,4,0">
+            <TextBox x:Name="txtNewExt" KeyDown="TxtNewExt_KeyDown"/>
+            <TextBlock x:Name="txtNewExtHint"
+                       Text="{Binding ColorAddExtHint, Source={x:Static app:App.Loc}}"
+                       IsHitTestVisible="False" Padding="8,5"
+                       Foreground="{StaticResource TextSecondaryBrush}">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                  <Setter Property="Visibility" Value="Collapsed"/>
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding Text, ElementName=txtNewExt}" Value="">
+                      <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
+          </Grid>
+          <Button Grid.Column="1" x:Name="btnAddExt"
+                  Content="{Binding ColorAddExtButton, Source={x:Static app:App.Loc}}"
+                  ToolTip="{Binding ColorAddExtTooltip, Source={x:Static app:App.Loc}}"
+                  Style="{StaticResource ToolButtonStyle}" Padding="8,4"
+                  Click="BtnAddExt_Click"/>
+        </Grid>
+        <TextBlock DockPanel.Dock="Bottom" x:Name="txtAddExtStatus"
+                   FontSize="10" TextWrapping="Wrap"
+                   Foreground="{StaticResource AccentBrush}"
+                   Margin="0,2,0,0" Visibility="Collapsed"/>
+
+        <ListBox x:Name="lstExtensions"
+                 SelectionChanged="LstExtensions_SelectionChanged">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Orientation="Horizontal">
+                <Rectangle Width="14" Height="14" Fill="{Binding Brush}"
+                           RadiusX="3" RadiusY="3" Margin="0,0,8,0"
+                           VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding Extension}" VerticalAlignment="Center"/>
+                <TextBlock Text=" *" Foreground="{StaticResource AccentBrush}"
+                           VerticalAlignment="Center"
+                           Visibility="{Binding IsOverride, Converter={StaticResource BoolVis}}"/>
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+
+      <!-- Trennlinie -->
+      <Rectangle Grid.Column="1" Fill="{StaticResource BorderBrush2}" Width="1" HorizontalAlignment="Center"/>
+
+      <!-- Rechte Seite: Farbwähler -->
+      <DockPanel Grid.Column="2" Margin="8,0,0,0">
+
+        <TextBlock DockPanel.Dock="Top" x:Name="lblSelectedExt"
+                   Text="{Binding ColorSelectExt, Source={x:Static app:App.Loc}}"
+                   FontSize="14" FontWeight="SemiBold"
+                   Foreground="{StaticResource TextPrimaryBrush}"
+                   Margin="0,0,0,10"/>
+
+        <!-- Vorschau + Reset -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,14">
+          <Border Width="80" Height="50" CornerRadius="6"
+                  BorderBrush="{StaticResource BorderBrush2}" BorderThickness="1" Margin="0,0,12,0">
+            <Border x:Name="colorPreview" CornerRadius="5"/>
+          </Border>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="{Binding ColorPreviewText, Source={x:Static app:App.Loc}}" FontSize="11"
+                       Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+            <Button x:Name="btnResetOne" Content="{Binding BtnResetOneText, Source={x:Static app:App.Loc}}"
+                    Style="{StaticResource ToolButtonStyle}" Padding="10,4"
+                    Click="BtnResetOne_Click" IsEnabled="False"
+                    Foreground="{StaticResource TextSecondaryBrush}"/>
+          </StackPanel>
+        </StackPanel>
+
+        <!-- Farbpalette (Schnellauswahl) -->
+        <TextBlock DockPanel.Dock="Top" Text="{Binding ColorQuickSelect, Source={x:Static app:App.Loc}}"
+                   FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                   Margin="0,0,0,5"/>
+        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,14" x:Name="palettePanel">
+          <!-- Wird per Code befüllt -->
+        </WrapPanel>
+
+        <!-- RGB-Slider -->
+        <Grid DockPanel.Dock="Top">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+          </Grid.RowDefinitions>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="20"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="40"/>
+          </Grid.ColumnDefinitions>
+
+          <!-- R -->
+          <TextBlock Grid.Row="0" Grid.Column="0" Text="R" FontWeight="Bold"
+                     Foreground="#FFFF6B6B" VerticalAlignment="Center"/>
+          <Slider Grid.Row="0" Grid.Column="1" x:Name="slR"
+                  Minimum="0" Maximum="255" SmallChange="1" LargeChange="16"
+                  TickFrequency="1" IsSnapToTickEnabled="True"
+                  Margin="4,3" ValueChanged="RgbSlider_Changed"/>
+          <TextBlock Grid.Row="0" Grid.Column="2" x:Name="lblR"
+                     VerticalAlignment="Center" HorizontalAlignment="Right"
+                     Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+
+          <!-- G -->
+          <TextBlock Grid.Row="1" Grid.Column="0" Text="G" FontWeight="Bold"
+                     Foreground="#FF6BFF6B" VerticalAlignment="Center"/>
+          <Slider Grid.Row="1" Grid.Column="1" x:Name="slG"
+                  Minimum="0" Maximum="255" SmallChange="1" LargeChange="16"
+                  TickFrequency="1" IsSnapToTickEnabled="True"
+                  Margin="4,3" ValueChanged="RgbSlider_Changed"/>
+          <TextBlock Grid.Row="1" Grid.Column="2" x:Name="lblG"
+                     VerticalAlignment="Center" HorizontalAlignment="Right"
+                     Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+
+          <!-- B -->
+          <TextBlock Grid.Row="2" Grid.Column="0" Text="B" FontWeight="Bold"
+                     Foreground="#FF6B9FFF" VerticalAlignment="Center"/>
+          <Slider Grid.Row="2" Grid.Column="1" x:Name="slB"
+                  Minimum="0" Maximum="255" SmallChange="1" LargeChange="16"
+                  TickFrequency="1" IsSnapToTickEnabled="True"
+                  Margin="4,3" ValueChanged="RgbSlider_Changed"/>
+          <TextBlock Grid.Row="2" Grid.Column="2" x:Name="lblB"
+                     VerticalAlignment="Center" HorizontalAlignment="Right"
+                     Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+
+          <!-- Hex -->
+          <TextBlock Grid.Row="3" Grid.Column="0" Text="#" FontWeight="Bold"
+                     Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+          <TextBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2"
+                   x:Name="txtHex" Margin="4,4"
+                   MaxLength="6" CharacterCasing="Upper"
+                   TextChanged="TxtHex_Changed"/>
+        </Grid>
+
+        <!-- Öffnen-mit-Sektion -->
+        <Separator DockPanel.Dock="Top" Margin="0,12,0,10"
+                   Background="{StaticResource BorderBrush2}"/>
+
+        <TextBlock DockPanel.Dock="Top"
+                   Text="{Binding OpenerLabel, Source={x:Static app:App.Loc}}"
+                   FontSize="11" FontWeight="SemiBold"
+                   Foreground="{StaticResource TextSecondaryBrush}"
+                   Margin="0,0,0,5"/>
+
+        <!-- Programm-ComboBox -->
+        <ComboBox DockPanel.Dock="Top" x:Name="cmbOpener"
+                  Margin="0,0,0,4"
+                  SelectionChanged="CmbOpener_SelectionChanged"/>
+
+        <!-- Pfad-Zeile: TextBox + Browse + Clear -->
+        <Grid DockPanel.Dock="Top">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+          </Grid.ColumnDefinitions>
+          <TextBox Grid.Column="0" x:Name="txtOpenerPath"
+                   IsReadOnly="True" FontSize="10"
+                   Foreground="{StaticResource TextSecondaryBrush}"
+                   Margin="0,0,4,0" VerticalContentAlignment="Center"/>
+          <Button Grid.Column="1" x:Name="btnBrowseOpener"
+                  Content="{Binding OpenerBrowse, Source={x:Static app:App.Loc}}"
+                  ToolTip="{Binding OpenerBrowseTip, Source={x:Static app:App.Loc}}"
+                  Style="{StaticResource ToolButtonStyle}"
+                  Padding="8,4" Margin="0,0,4,0"
+                  Click="BtnBrowseOpener_Click"/>
+          <Button Grid.Column="2" x:Name="btnClearOpener"
+                  Content="{Binding OpenerClear, Source={x:Static app:App.Loc}}"
+                  ToolTip="{Binding OpenerClearTip, Source={x:Static app:App.Loc}}"
+                  Style="{StaticResource ToolButtonStyle}"
+                  Foreground="{StaticResource TextSecondaryBrush}"
+                  Padding="8,4"
+                  Click="BtnClearOpener_Click"/>
+        </Grid>
+
+      </DockPanel>
+    </Grid>
+
+    <!-- Buttons -->
+    <StackPanel Grid.Row="2" Orientation="Horizontal"
+                HorizontalAlignment="Right" Margin="0,12,0,0">
+      <Button Content="{Binding BtnResetAllText, Source={x:Static app:App.Loc}}"
+              Style="{StaticResource ToolButtonStyle}"
+              Padding="14,7" Margin="0,0,8,0" Click="BtnResetAll_Click"
+              Foreground="{StaticResource TextSecondaryBrush}"/>
+      <Button Content="{Binding BtnCancelDialog, Source={x:Static app:App.Loc}}" Style="{StaticResource ToolButtonStyle}"
+              Padding="14,7" Margin="0,0,8,0" IsCancel="True"
+              Click="BtnCancel_Click"/>
+      <Button Content="{Binding BtnOkText, Source={x:Static app:App.Loc}}" Style="{StaticResource AccentButtonStyle}"
+              Padding="24,7" IsDefault="True" Click="BtnOk_Click"/>
+    </StackPanel>
+
+  </Grid>
+
+</Window>

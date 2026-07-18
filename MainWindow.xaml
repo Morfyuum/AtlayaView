@@ -1,0 +1,306 @@
+<Window x:Class="AtlayaView.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:app="clr-namespace:AtlayaView"
+        Title="AtlayaView – Disk Visualizer"
+        Width="1280" Height="800"
+        MinWidth="800" MinHeight="550"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgDeepBrush}"
+        Loaded="Window_Loaded">
+
+  <Window.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolVis"/>
+    <Style x:Key="ToolSepStyle" TargetType="Separator">
+      <Setter Property="Background" Value="{StaticResource BorderBrush2}"/>
+      <Setter Property="Width"      Value="1"/>
+      <Setter Property="Margin"     Value="4,3"/>
+    </Style>
+  </Window.Resources>
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="24"/>
+    </Grid.RowDefinitions>
+
+    <!-- MENÜLEISTE -->
+    <Menu x:Name="mainMenu" Grid.Row="0"
+          Background="{StaticResource BgToolbarBrush}"
+          BorderBrush="{StaticResource BorderBrush2}"
+          BorderThickness="0,0,0,1">
+      <MenuItem Header="{Binding MenuFile,         Source={x:Static app:App.Loc}}">
+        <MenuItem Header="{Binding MenuOpenFolder,  Source={x:Static app:App.Loc}}" Command="{Binding OpenFolderCommand}" InputGestureText="Ctrl+O"/>
+        <Separator/>
+        <MenuItem Header="{Binding MenuSaveBitmap,  Source={x:Static app:App.Loc}}" Click="MenuSaveBitmap_Click"        InputGestureText="Ctrl+S"/>
+        <Separator/>
+        <MenuItem Header="{Binding MenuExit,        Source={x:Static app:App.Loc}}" Click="MenuExit_Click"              InputGestureText="Alt+F4"/>
+      </MenuItem>
+      <MenuItem Header="{Binding MenuView,          Source={x:Static app:App.Loc}}">
+        <MenuItem Header="{Binding MenuBack,    Source={x:Static app:App.Loc}}" Command="{Binding NavigateBackCommand}" InputGestureText="Backspace"/>
+        <MenuItem Header="{Binding MenuUp,      Source={x:Static app:App.Loc}}" Command="{Binding NavigateUpCommand}"   InputGestureText="Up"/>
+        <Separator/>
+        <MenuItem Header="{Binding MenuRefresh, Source={x:Static app:App.Loc}}" Click="MenuRefresh_Click"              InputGestureText="F5"/>
+        <Separator/>
+        <MenuItem x:Name="menuShowLegend"         Header="{Binding MenuShowLegend,      Source={x:Static app:App.Loc}}" IsCheckable="True" IsChecked="True" Click="MenuShowLegend_Click"/>
+        <MenuItem x:Name="menuShowDiskSpace"      Header="{Binding MenuShowDiskSpace,   Source={x:Static app:App.Loc}}" IsCheckable="True" IsChecked="True" Click="MenuShowDiskSpace_Click"/>
+        <MenuItem x:Name="menuShowFreeSpaceCushion" Header="{Binding MenuShowFreeCushion, Source={x:Static app:App.Loc}}" IsCheckable="True" IsChecked="True" Click="MenuShowFreeSpaceCushion_Click"/>
+        <Separator/>
+        <MenuItem x:Name="menuShowAll" Header="{Binding MenuShowAllTypes, Source={x:Static app:App.Loc}}" Click="MenuShowAll_Click" InputGestureText="Esc"/>
+      </MenuItem>
+      <MenuItem Header="{Binding MenuOptions,       Source={x:Static app:App.Loc}}">
+        <MenuItem Header="{Binding MenuSettings,    Source={x:Static app:App.Loc}}" Click="MenuOptions_Click"  InputGestureText="Ctrl+P"/>
+        <MenuItem Header="{Binding MenuColorScheme, Source={x:Static app:App.Loc}}" Click="MenuColors_Click"  InputGestureText="Ctrl+L"/>
+        <MenuItem Header="{Binding MenuFilter,      Source={x:Static app:App.Loc}}" Click="MenuFilters_Click" InputGestureText="Ctrl+F"/>
+        <Separator/>
+        <MenuItem Header="{Binding MenuLanguage,    Source={x:Static app:App.Loc}}">
+          <MenuItem x:Name="miLangDe" Header="Deutsch"  IsCheckable="True" IsChecked="True"  Click="MenuLang_Click" Tag="0"/>
+          <MenuItem x:Name="miLangEn" Header="English"  IsCheckable="True" IsChecked="False" Click="MenuLang_Click" Tag="1"/>
+          <MenuItem x:Name="miLangFr" Header="Français" IsCheckable="True" IsChecked="False" Click="MenuLang_Click" Tag="2"/>
+          <MenuItem x:Name="miLangIt" Header="Italiano"  IsCheckable="True" IsChecked="False" Click="MenuLang_Click" Tag="3"/>
+          <MenuItem x:Name="miLangEs" Header="Español"  IsCheckable="True" IsChecked="False" Click="MenuLang_Click" Tag="4"/>
+        </MenuItem>
+      </MenuItem>
+      <MenuItem Header="{Binding MenuHelp,          Source={x:Static app:App.Loc}}">
+        <MenuItem Header="{Binding MenuAbout,       Source={x:Static app:App.Loc}}" Click="MenuAbout_Click"/>
+        <MenuItem Header="{Binding MenuCheckUpdate, Source={x:Static app:App.Loc}}" Click="MenuCheckUpdate_Click"/>
+        <Separator/>
+        <MenuItem Header="{Binding MenuImprint,     Source={x:Static app:App.Loc}}" Click="MenuImprint_Click"/>
+        <MenuItem Header="{Binding MenuPrivacy,     Source={x:Static app:App.Loc}}" Click="MenuPrivacy_Click"/>
+      </MenuItem>
+    </Menu>
+
+    <!-- TOOLBAR -->
+    <Border Grid.Row="1"
+            Background="{StaticResource BgToolbarBrush}"
+            BorderBrush="{StaticResource BorderBrush2}"
+            BorderThickness="0,0,0,1">
+      <DockPanel LastChildFill="False" Margin="4,3">
+        <Button DockPanel.Dock="Left" Style="{StaticResource AccentButtonStyle}"
+                Content="{Binding BtnFolder,     Source={x:Static app:App.Loc}}" Command="{Binding OpenFolderCommand}"
+                ToolTip="{Binding TipOpenFolder, Source={x:Static app:App.Loc}}" Margin="0,0,2,0"/>
+        <Button x:Name="btnDrivePicker" DockPanel.Dock="Left" Style="{StaticResource ToolButtonStyle}"
+          Content="{Binding BtnDrives, Source={x:Static app:App.Loc}}"
+          ToolTip="{Binding TipDrivePicker, Source={x:Static app:App.Loc}}"
+          Click="DrivePickerBtn_Click" Margin="0,0,2,0"/>
+        <ComboBox x:Name="cmbDrives" DockPanel.Dock="Left" Width="130"
+                  ItemsSource="{Binding Drives}" ToolTip="{Binding TipScanDrive, Source={x:Static app:App.Loc}}"
+                  SelectionChanged="CmbDrives_SelectionChanged" Margin="0,0,2,0">
+          <ComboBox.ItemTemplate>
+            <DataTemplate>
+              <TextBlock><Run Text="{Binding Name, Mode=OneWay}"/><Run Text="{Binding VolumeLabel, Mode=OneWay}"/></TextBlock>
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <Separator Style="{StaticResource ToolSepStyle}" DockPanel.Dock="Left"/>
+        <Button DockPanel.Dock="Left" Style="{StaticResource ToolButtonStyle}"
+                Content="◀" Command="{Binding NavigateBackCommand}"
+                ToolTip="{Binding TipBack,    Source={x:Static app:App.Loc}}" FontSize="14" Padding="8,4" Margin="0,0,2,0"/>
+        <Button DockPanel.Dock="Left" Style="{StaticResource ToolButtonStyle}"
+                Content="▲" Command="{Binding NavigateUpCommand}"
+                ToolTip="{Binding TipUp,      Source={x:Static app:App.Loc}}" FontSize="14" Padding="8,4" Margin="0,0,2,0"/>
+        <Button DockPanel.Dock="Left" Style="{StaticResource ToolButtonStyle}"
+                Content="🔄" Click="MenuRefresh_Click"
+                ToolTip="{Binding TipRefresh, Source={x:Static app:App.Loc}}" FontSize="14" Padding="8,4" Margin="0,0,2,0"/>
+        <Separator Style="{StaticResource ToolSepStyle}" DockPanel.Dock="Left"/>
+        <Button x:Name="btnCancelScanToolbar" DockPanel.Dock="Left" Style="{StaticResource ToolButtonStyle}"
+          Content="{Binding BtnCancelText, Source={x:Static app:App.Loc}}" Click="CancelScanButton_Click"
+          Visibility="Collapsed"
+          Foreground="#FFFF6B6B" Padding="8,4" Margin="0,0,2,0"/>
+        <TextBlock DockPanel.Dock="Right" Text="{Binding TotalSizeText}"
+                   Foreground="{StaticResource TextSecondaryBrush}"
+                   VerticalAlignment="Center" Margin="0,0,8,0" FontSize="12"/>
+        <!-- Status-Anzeige neben Aktualisieren-Button -->
+        <TextBlock DockPanel.Dock="Left" Text="{Binding StatusText}"
+                   Foreground="#FFFFD700" FontWeight="Bold" FontSize="12"
+                   VerticalAlignment="Center" Margin="8,0,0,0"
+                   TextTrimming="CharacterEllipsis" MaxWidth="500"/>
+      </DockPanel>
+    </Border>
+
+    <!-- BREADCRUMB -->
+    <Border Grid.Row="2"
+            Background="{StaticResource BgPanelBrush}"
+            BorderBrush="{StaticResource BorderBrush2}"
+            BorderThickness="0,0,0,1" Padding="8,2">
+      <ItemsControl ItemsSource="{Binding Breadcrumb}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <StackPanel Orientation="Horizontal">
+              <Button Style="{StaticResource ToolButtonStyle}" Content="{Binding Label}"
+                      FontSize="12" Padding="4,1" Click="BreadcrumbBtn_Click" Tag="{Binding Node}"/>
+              <TextBlock Text=" ›" FontSize="12"
+                         Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </Border>
+
+    <!-- TREEMAP-BEREICH -->
+    <Grid Grid.Row="3">
+      <Image x:Name="imgTreemap" Stretch="Fill"
+             RenderOptions.BitmapScalingMode="NearestNeighbor"
+             UseLayoutRounding="True" SnapsToDevicePixels="True"
+             SizeChanged="ImgTreemap_SizeChanged"/>
+      <Canvas x:Name="overlayCanvas" Background="Transparent" IsHitTestVisible="False"/>
+
+      <!-- Leer-Zustand -->
+      <StackPanel x:Name="emptyStatePanel" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Collapsed">
+        <Image Source="/Resources/atlaya.png" Width="72" Height="72" HorizontalAlignment="Center"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,6">
+          <TextBlock Text="AtlayaView" FontSize="32" FontWeight="Bold"
+                     Foreground="{StaticResource AccentBrush}" VerticalAlignment="Bottom"/>
+          <TextBlock Text="{Binding EmptyStateVersion, Source={x:Static app:App.Loc}}" FontSize="14"
+                     Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Bottom" Margin="8,0,0,4"/>
+        </StackPanel>
+        <TextBlock Text="{Binding EmptyHint1, Source={x:Static app:App.Loc}}"
+                   FontSize="15" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center"/>
+        <TextBlock Text="{Binding EmptyHint2, Source={x:Static app:App.Loc}}"
+                   FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                   HorizontalAlignment="Center" Margin="0,6,0,0"/>
+        <TextBlock Text="Squarified Cushion-Treemap  ·  64-bit  ·  .NET 9"
+                   FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                   HorizontalAlignment="Center" Margin="0,4,0,0"/>
+        <TextBlock Text="{Binding AboutCopyright, Source={x:Static app:App.Loc}}"
+                   FontSize="10" Foreground="{StaticResource TextSecondaryBrush}"
+                   HorizontalAlignment="Center" Margin="0,10,0,0" Opacity="0.7"/>
+      </StackPanel>
+
+      <!-- Maus-Events -->
+      <Grid x:Name="mouseCapture" Background="Transparent"
+            MouseMove="TreemapGrid_MouseMove" MouseLeave="TreemapGrid_MouseLeave"
+            MouseLeftButtonDown="TreemapGrid_MouseLeftButtonDown"
+            MouseRightButtonDown="TreemapGrid_MouseRightButtonDown"
+            MouseWheel="TreemapGrid_MouseWheel"/>
+
+      <!-- SCAN-OVERLAY -->
+      <Grid x:Name="scanOverlay" Visibility="Collapsed">
+        <Rectangle Fill="#CC000000"/>
+        <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{StaticResource BgPanelBrush}"
+                BorderBrush="{StaticResource AccentBrush}"
+                BorderThickness="1" CornerRadius="8" Padding="32,24" MinWidth="400">
+          <StackPanel>
+            <TextBlock Text="{Binding ScanOverlayTitle, Source={x:Static app:App.Loc}}" FontSize="18" FontWeight="SemiBold"
+                       Foreground="{StaticResource AccentBrush}"
+                       HorizontalAlignment="Center" Margin="0,0,0,16"/>
+            <TextBlock Text="{Binding ScanRootPath}" FontSize="13" FontWeight="SemiBold"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
+                       MaxWidth="340" Margin="0,0,0,4"/>
+            <TextBlock Text="{Binding ScanDriveInfo}" FontSize="12"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       HorizontalAlignment="Center" Margin="0,0,0,16"/>
+            <ProgressBar Height="10" Value="{Binding ScanProgress, Mode=OneWay}"
+                         IsIndeterminate="{Binding IsIndeterminate}"
+                         Foreground="{StaticResource AccentBrush}"
+                         Background="{StaticResource BgDeepBrush}"
+                         BorderThickness="0" Margin="0,0,0,6"/>
+            <!-- Dateianzahl links, ETA rechts -->
+            <Grid Margin="0,0,0,8">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0"
+                         Text="{Binding FileCountText}"
+                         FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                         VerticalAlignment="Center"/>
+              <TextBlock Grid.Column="1"
+                         Text="{Binding ScanEtaText}"
+                         FontSize="12" FontWeight="SemiBold"
+                         Foreground="{StaticResource AccentBrush}"
+                         VerticalAlignment="Center"/>
+            </Grid>
+            <!-- aktueller Pfad (gedimmt) -->
+            <TextBlock Text="{Binding ScanInfo}" FontSize="10"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
+                       MaxWidth="340" Opacity="0.65" Margin="0,0,0,16"/>
+                    <Button x:Name="btnCancelScanOverlay" Style="{StaticResource ToolButtonStyle}" Content="{Binding BtnCancelText, Source={x:Static app:App.Loc}}"
+                      Click="CancelScanButton_Click"
+                    Foreground="#FFFF6B6B" HorizontalAlignment="Center" Padding="20,6"/>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Grid>
+
+    <!-- LEGENDE -->
+    <Border x:Name="legendBorder" Grid.Row="4"
+            Background="{StaticResource BgPanelBrush}"
+            BorderBrush="{StaticResource BorderBrush2}" BorderThickness="0,1,0,0">
+      <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                    VerticalScrollBarVisibility="Disabled" Height="28">
+        <ItemsControl x:Name="legendPanel" Margin="6,3">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Button Style="{StaticResource LegendButtonStyle}"
+                      Tag="{Binding CategoryKey}" Click="LegendItem_Click"
+                      ToolTip="{Binding TipLegendFilter, Source={x:Static app:App.Loc}}">
+                <StackPanel Orientation="Horizontal" Margin="4,1">
+                  <Rectangle Width="10" Height="10" Fill="{Binding Color}"
+                             VerticalAlignment="Center" RadiusX="2" RadiusY="2" Margin="0,0,4,0"/>
+                  <TextBlock x:Name="lblLegend" Text="{Binding Label}" FontSize="10"
+                             Foreground="{Binding TextBrush}" VerticalAlignment="Center"/>
+                </StackPanel>
+              </Button>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Border>
+
+    <!-- DISK-SPACE-BAR -->
+    <Border x:Name="diskSpaceBorder" Grid.Row="5"
+            Background="{StaticResource BgPanelBrush}"
+            BorderBrush="{StaticResource BorderBrush2}" BorderThickness="0,1,0,0"
+            Height="18">
+      <Grid>
+        <!-- Einzellaufwerk (Standard) -->
+        <Grid x:Name="diskSpaceSingle" Margin="8,0">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="160"/>
+            <ColumnDefinition Width="*"/>
+          </Grid.ColumnDefinitions>
+          <TextBlock Grid.Column="0" Text="💾" FontSize="10" VerticalAlignment="Center" Margin="0,0,6,0"
+                     Foreground="{StaticResource TextSecondaryBrush}"/>
+          <ProgressBar Grid.Column="1" Height="8" VerticalAlignment="Center"
+                       Minimum="0" Maximum="100"
+                       Value="{Binding DiskUsedPct, Mode=OneWay}"
+                       Foreground="{StaticResource AccentBrush}"
+                       Background="{StaticResource BgDeepBrush}"
+                       BorderThickness="0"/>
+          <TextBlock Grid.Column="2" Text="{Binding DiskFreeText}" FontSize="10"
+                     Foreground="{StaticResource TextSecondaryBrush}"
+                     VerticalAlignment="Center" Margin="8,0,0,0"/>
+        </Grid>
+        <!-- Multi-Laufwerk (dynamisch befüllt) -->
+        <Grid x:Name="diskSpaceMulti" Margin="4,0" Visibility="Collapsed"/>
+      </Grid>
+    </Border>
+
+    <!-- STATUSLEISTE -->
+    <Border Grid.Row="6" Background="{StaticResource BgToolbarBrush}"
+            BorderBrush="{StaticResource BorderBrush2}" BorderThickness="0,1,0,0">
+      <Grid Margin="8,0">
+        <TextBlock Grid.Column="0" Text="{Binding HoverInfo}" FontSize="11"
+                   Foreground="{StaticResource TextPrimaryBrush}"
+                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+      </Grid>
+    </Border>
+
+  </Grid>
+</Window>

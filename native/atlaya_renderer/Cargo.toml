@@ -1,0 +1,14 @@
+[package]
+name = "atlaya_renderer"
+version = "2.0.13"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+opt-level = 3
+panic = "abort"
+strip = "symbols"
