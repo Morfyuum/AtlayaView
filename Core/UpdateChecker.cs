@@ -20,7 +20,7 @@ public static class UpdateChecker
     private const string LegacySiteRoot = "https://atlaya.capecter.com/";
     // Leer = bisheriger Website-Feed bleibt aktiv. Sobald dein GitHub-Owner hier steht,
     // liest AtlayaView die neueste Version direkt aus GitHub Releases.
-    private const string GitHubOwner = "Morfyuum";
+    private const string GitHubOwner = "";
     private const string GitHubRepo = "AtlayaView";
     private static readonly Regex FullZipPattern = new(@"-win-x64(?:-full)?\.zip$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex FxZipPattern = new(@"-win-x64-fx\.zip$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
