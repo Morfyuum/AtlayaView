@@ -1,5 +1,10 @@
 # AtlayaView
 
+![License: MIT](https://img.shields.io/badge/License-MIT-1f6feb.svg)
+![Platform: Windows](https://img.shields.io/badge/Platform-Windows-0078d4.svg)
+![.NET 9](https://img.shields.io/badge/.NET-9-512bd4.svg)
+![Rust Renderer](https://img.shields.io/badge/Renderer-Rust%20optional-b7410e.svg)
+
 AtlayaView is a fast local disk space visualizer for Windows. It scans one or more drives and renders the used space as a cushion treemap, making large folders and files visible at a glance.
 
 Official website: https://atlaya.capecter.com
@@ -72,6 +77,27 @@ pwsh -File .\build-hybrid.ps1 -Configuration Release
 Public releases and website downloads are published through the Atlaya website:
 
 https://atlaya.capecter.com
+
+## Releases
+
+AtlayaView uses two Windows release variants:
+
+- Full: self-contained package with the .NET runtime included.
+- FX: framework-dependent package for systems that already have .NET 9 installed.
+
+Current public downloads are distributed via the Atlaya website. GitHub is prepared as the source repository and can also host future public releases once the repository is made public.
+
+Typical release flow:
+
+1. Update the version in [AtlayaView.csproj](AtlayaView.csproj).
+2. Build both release variants with [build-hybrid.ps1](build-hybrid.ps1).
+3. Package the cleaned public ZIP files.
+4. Publish the artifacts and release notes.
+
+Expected artifact names for release publishing:
+
+- AtlayaView-<version>-win-x64-full.zip
+- AtlayaView-<version>-win-x64-fx.zip
 
 ## License
 
