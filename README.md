@@ -5,9 +5,13 @@
 ![.NET 9](https://img.shields.io/badge/.NET-9-512bd4.svg)
 ![Rust Renderer](https://img.shields.io/badge/Renderer-Rust%20optional-b7410e.svg)
 
-AtlayaView is a fast local disk space visualizer for Windows. It scans one or more drives and renders the used space as a cushion treemap, making large folders and files visible at a glance.
+Fast local disk space visualization for Windows with cushion treemaps, a WPF desktop UI, and an optional native Rust renderer.
 
-Official website: https://atlaya.capecter.com
+AtlayaView scans one or more drives and turns used storage into an instantly readable treemap, making large folders and files visible at a glance.
+
+**Website:** https://atlaya.capecter.com  
+**Source Repository:** https://github.com/Morfyuum/AtlayaView  
+**Public Downloads:** https://atlaya.capecter.com
 
 ![AtlayaView logo](Resources/atlaya.png)
 
