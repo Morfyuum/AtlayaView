@@ -75,6 +75,12 @@ AtlayaView-Downloads sind **niemals** Quellcode, Debug-Symbole oder Geheimnisse.
    - bei neuen/geänderten Funktionen: `atlayaview_site.json` (+ ggf. neues Platzhalter-Icon)
      und `atlayaview_faq.json`/`atlayaview_help.json` bei Bedarf,
    - `<Version>` in `AtlayaView.csproj` anheben,
+   - **`D:\AtlayaView\README.md`**: Versionsnummer in beiden Download-Blöcken (Kopfbereich
+     und „## Downloads") auf die neue Version anheben – zwei getrennte Stellen mit je zwei
+     Links (Full/FX), leicht zu vergessen, weil sie nicht Teil von `package_atlayaview.py`
+     sind. War am 2026-07-20 drei Versionen (2.0.16 statt 2.0.35) veraltet, weil dieser
+     Schritt beim Release-Zyklus schlicht übersprungen wurde. Änderung committen und pushen,
+     sonst bleibt die Korrektur nur lokal.
    - Schritte 1–2 oben ausführen.
 4. **PFLICHT – sofort und ohne Rückfrage ausführen (Dauerfreigabe von Chris, 2026-07-16,
    verschärft nach einem zweiten Vorfall am selben Tag):** Nach jeder AtlayaView-Änderung
