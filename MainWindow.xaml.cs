@@ -981,6 +981,10 @@ public partial class MainWindow : Window
             RefreshLegendState();
             UpdateScanVisualState();
             Dispatcher.InvokeAsync(DoLayoutAndRender);
+            // Ohne dies gingen Farbueberschreibungen (auch ueber Farbprofile gesetzte) nach einem
+            // Neustart verloren, solange der Nutzer nicht zusaetzlich den Optionen-Dialog bestaetigt
+            // hatte -- SettingsStore.Save() wurde bisher nur von dort aus aufgerufen.
+            Core.SettingsStore.Save(_vm.ShowFreeSpaceCushion);
         }
     }
 
@@ -1062,6 +1066,21 @@ public partial class MainWindow : Window
     {
         PopulateDriveMenuItems();
     }
+
+    /// <summary>
+    /// Stößt sofort ein Neu-Rendern des Treemaps an (Einzel- oder Multi-Laufwerk-Modus, je nach
+    /// aktuellem Zustand). Wird von Dialogen aufgerufen, die eine Farbänderung direkt und ohne
+    /// weiteren Bestätigungsschritt sichtbar machen sollen, auch während sie selbst noch offen
+    /// sind (z. B. Farbprofil-Anwendung).
+    /// </summary>
+    public void RequestImmediateRerender() => Dispatcher.InvokeAsync(DoLayoutAndRender);
+
+    /// <summary>
+    /// Persistiert die aktuellen Einstellungen (inkl. Farbüberschreibungen) sofort auf die
+    /// Festplatte. Wird von der Farbprofil-Anwendung genutzt, damit ein angewendetes Profil auch
+    /// dann einen Neustart überlebt, wenn die Dialoge anschließend ohne „OK" geschlossen werden.
+    /// </summary>
+    public void PersistSettingsNow() => Core.SettingsStore.Save(_vm.ShowFreeSpaceCushion);
 
     private void PopulateDriveMenuItems()
     {

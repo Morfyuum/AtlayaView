@@ -134,8 +134,64 @@ public static class ColorScheme
     /// <summary>Benutzer-definierte Farbüberschreibungen (Erweiterung → Farbe).</summary>
     private static readonly Dictionary<string, Color> _overrides = new(StringComparer.OrdinalIgnoreCase);
 
+    // ── Exklusives Farbprofil ────────────────────────────────────────────────
+    // Ist ein Farbprofil aktiv, gilt AUSSCHLIESSLICH dieses Profil: Erweiterungen im Profil
+    // bekommen ihre Profilfarbe, alle anderen ein neutrales Silbergrau (Fokus-Ansicht).
+    // null = "Startprofil" (Standardfarben + manuelle Overrides, Verhalten wie bisher).
+    private static Dictionary<string, Color>? _profileColors;
+
+    /// <summary>Silbergrau für alle Erweiterungen außerhalb des aktiven Profils.</summary>
+    public static readonly Color MutedProfileColor = Color.FromRgb(150, 150, 158);
+
+    /// <summary>Name des aktiven Farbprofils, null = Startprofil (Standardfarben).</summary>
+    public static string? ActiveProfileName { get; private set; }
+
+    /// <summary>Aktiviert ein Farbprofil exklusiv: nur seine Erweiterungen behalten Farbe.</summary>
+    public static void ApplyExclusiveProfile(string name, IReadOnlyDictionary<string, string> extensionColors)
+    {
+        var d = new Dictionary<string, Color>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (ext, hex) in extensionColors)
+        {
+            try
+            {
+                d[ext] = (Color)System.Windows.Media.ColorConverter.ConvertFromString(hex)!;
+            }
+            catch { /* ungueltiger Hex-Wert im Profil -> Erweiterung ueberspringen */ }
+        }
+        _profileColors = d;
+        ActiveProfileName = name;
+    }
+
+    /// <summary>Zurück zum Startprofil: Standardfarben + manuelle Overrides gelten wieder.</summary>
+    public static void ClearActiveProfile()
+    {
+        _profileColors = null;
+        ActiveProfileName = null;
+    }
+
     // ── Öffentliche API ──────────────────────────────────────────────────────
     public static Color GetColor(string extension)
+    {
+        if (_profileColors != null)
+        {
+            // Freier Speicher behaelt seine Farbe, damit die Fokus-Ansicht ihn nicht verschluckt.
+            if (extension == ".__free__") return _map[".__free__"];
+            if (!string.IsNullOrEmpty(extension) && _profileColors.TryGetValue(extension, out var pc))
+                return pc;
+            return MutedProfileColor;
+        }
+
+        if (string.IsNullOrEmpty(extension)) return _defaultColor;
+        if (_overrides.TryGetValue(extension, out var ov)) return ov;
+        if (_map.TryGetValue(extension, out var c)) return c;
+        return _defaultColor;
+    }
+
+    /// <summary>
+    /// Basisfarbe (Standard + manuelle Overrides) unter Ignorieren eines aktiven Profils --
+    /// für den Profil-Editor, der sonst für Nicht-Profil-Erweiterungen nur Silbergrau sähe.
+    /// </summary>
+    public static Color GetBaseColor(string extension)
     {
         if (string.IsNullOrEmpty(extension)) return _defaultColor;
         if (_overrides.TryGetValue(extension, out var ov)) return ov;
@@ -150,16 +206,22 @@ public static class ColorScheme
     /// <summary>Setzt alle benutzerdefinierten Farben zurück auf die Standardwerte.</summary>
     public static void ResetAll() => _overrides.Clear();
 
-    /// <summary>Gibt true zurück, wenn für die Erweiterung eine Override-Farbe gesetzt ist.</summary>
+    /// <summary>
+    /// Gibt true zurück, wenn die Erweiterung eine explizit gesetzte Farbe trägt – bei aktivem
+    /// Profil dessen Mitglieder (damit z. B. der Legenden-Kategoriefilter sie nie wegdimmt),
+    /// sonst die manuellen Overrides.
+    /// </summary>
     public static bool HasOverride(string extension)
-        => _overrides.ContainsKey(extension);
+        => _profileColors != null ? _profileColors.ContainsKey(extension) : _overrides.ContainsKey(extension);
 
     /// <summary>Alle benutzerdefinierten Farbüberschreibungen (für Persistenz).</summary>
     public static IReadOnlyDictionary<string, Color> Overrides => _overrides;
 
-    /// <summary>Alle bekannten Erweiterungen (Standard + Override) alphabetisch.</summary>
+    /// <summary>Alle bekannten Erweiterungen (Standard + Override + aktives Profil) alphabetisch.</summary>
     public static IEnumerable<string> AllExtensions
-        => _map.Keys.Concat(_overrides.Keys).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(e => e);
+        => _map.Keys.Concat(_overrides.Keys)
+            .Concat(_profileColors?.Keys ?? Enumerable.Empty<string>())
+            .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(e => e);
 
     /// <summary>Alle Einträge (inkl. Overrides) als flaches Dictionary.</summary>
     public static IReadOnlyDictionary<string, Color> EffectiveMap

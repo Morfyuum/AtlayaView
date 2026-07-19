@@ -1,5 +1,180 @@
 # AtlayaView Release Notes
 
+## 2.0.35 - 2026-07-19
+
+- Neu: **Farbprofile sind jetzt eine exklusive Fokus-Ansicht.** Ist ein Profil aktiv (z. B.
+  „Bilder“), behalten NUR dessen Erweiterungen ihre Profilfarben – alle übrigen Erweiterungen
+  werden einheitlich silbergrau dargestellt. So hebt ein Profil genau die Dateiarten hervor,
+  um die es geht. Der freie-Speicher-Block behält seine Farbe.
+- Neu: Fest eingebautes **„Startprofil“** (lokalisiert in allen 5 Sprachen) an Position 1 der
+  Profilliste: Auswahl schaltet zurück auf die Standardfarben (inkl. eigener Einzelfarb-
+  Anpassungen aus dem Farbschema-Dialog) – kein Profil mehr aktiv. Nicht lösch- oder editierbar.
+  Die Profilliste ist damit die alleinige Umschaltung zwischen Standardfarben und beliebig
+  vielen eigenen, weiterhin erstell-/bearbeit-/löschbaren Profilen.
+- Das aktive Profil wird gespeichert und beim nächsten Programmstart wiederhergestellt; beim
+  Öffnen des Farbprofil-Dialogs ist es vorselektiert. Wird das aktive Profil gelöscht, springt
+  die Anzeige automatisch auf das Startprofil zurück. „Alle zurücksetzen“ im Farbschema-Dialog
+  beendet zusätzlich ein aktives Profil.
+- Verifiziert per UI-Automation (echte kompilierte App, Screenshots + Pixelvergleich):
+  Profil „Bilder“ anklicken → Bilddateien gelb, `.txt`-Kissen silbergrau; „Startprofil“
+  anklicken → Standardfarben zurück; Neustart mit aktivem Profil → Fokus-Ansicht bleibt.
+
+## Artefakte
+
+- EXE: `dist/publish/AtlayaView-2.0.35-win-x64/AtlayaView.exe` (mit .NET, self-contained)
+- EXE: `dist/publish/AtlayaView-2.0.35-win-x64-fx/AtlayaView.exe` (ohne .NET, framework-dependent)
+- ZIP: `dist/AtlayaView-2.0.35-win-x64.zip`, `dist/AtlayaView-2.0.35-win-x64-fx.zip`
+- Native DLL: `dist/publish/AtlayaView-2.0.35-win-x64/atlaya_renderer.dll`
+
+## 2.0.34 - 2026-07-19
+
+- Neu: **Umschalten = Anwenden.** Das bloße Auswählen eines Farbprofils in der Profilliste
+  (z. B. Klick auf „Bilder“) überträgt dessen Farben jetzt sofort und automatisch auf die
+  Kissendarstellung – ohne zusätzlichen Klick auf „Speichern“ oder „Auf Liste anwenden“
+  (beide Knöpfe bleiben für Bearbeitung bzw. Schließen-mit-Übernahme erhalten). Per
+  UI-Automation gegen die echte kompilierte App verifiziert: Treemap startet rot (.bmp-Override),
+  wird durch reines Anklicken des Profils „Bilder“ sofort gelb.
+- Neu: Eine Profilanwendung wird jetzt sofort auf die Festplatte gespeichert (nicht mehr erst
+  beim „OK“ des Farbschema-Dialogs) – sie überlebt damit auch das Schließen der Dialoge über
+  „X“/Escape und den nächsten Programmstart. Ebenfalls per Neustart-Test verifiziert.
+- Statustext „… angewendet – auf ‚OK‘ klicken, um zu speichern“ entsprechend geändert zu
+  „… angewendet und gespeichert“ (alle 5 Sprachen).
+
+## Artefakte
+
+- EXE: `dist/publish/AtlayaView-2.0.34-win-x64/AtlayaView.exe` (mit .NET, self-contained)
+- EXE: `dist/publish/AtlayaView-2.0.34-win-x64-fx/AtlayaView.exe` (ohne .NET, framework-dependent)
+- ZIP: `dist/AtlayaView-2.0.34-win-x64.zip`, `dist/AtlayaView-2.0.34-win-x64-fx.zip`
+- Native DLL: `dist/publish/AtlayaView-2.0.34-win-x64/atlaya_renderer.dll`
+
+## 2.0.33 - 2026-07-19
+
+- Wichtiger Bugfix (Persistenz): Über den Farbschema-Dialog gesetzte Farben (auch über ein
+  angewendetes Farbprofil) wurden bisher nur im laufenden Prozess in `ColorScheme` geschrieben.
+  `SettingsStore.Save()` – die Funktion, die Einstellungen tatsächlich auf die Festplatte
+  schreibt – wurde bislang ausschließlich vom Optionen-Dialog aus aufgerufen, nie vom
+  Farbschema-Dialog. Ergebnis: Eine Farbänderung wirkte im laufenden Programm korrekt, ging aber
+  beim nächsten Start wieder verloren, sofern man nicht zusätzlich (zufällig) auch den
+  Optionen-Dialog bestätigt hatte. `MainWindow.MenuColors_Click` ruft nach einem erfolgreichen
+  „OK“ jetzt ebenfalls `SettingsStore.Save()` auf.
+- Bugfix: Nach Anwenden eines Farbprofils („Speichern“/„Auf Liste anwenden“) zeigte die rechte
+  Farbvorschau (Muster, RGB-Regler, Hex-Feld) im Farbschema-Dialog für die gerade ausgewählte
+  Erweiterung weiterhin die alte Farbe, obwohl Liste und Treemap bereits korrekt aktualisiert
+  waren – wirkte wie ein weiterer Beleg für „Profil wird nicht angewendet“, obwohl nur diese
+  Detailansicht veraltet war. Die Auswahl wird nach dem Neuaufbau der Liste jetzt erneut gesetzt,
+  wodurch sich der Farbwähler korrekt aktualisiert.
+- Bugfix: „Alle zurücksetzen“ im Farbschema-Dialog leerte bisher nur die interne
+  Änderungs-Zwischenablage, ohne `ColorScheme` selbst zurückzusetzen oder den Treemap neu zu
+  rendern – der Button hatte sichtbar keine Wirkung. Setzt jetzt auch die aktive Farbtabelle
+  zurück und aktualisiert die Anzeige sofort.
+- Release-Version auf 2.0.33 angehoben in .NET-Projekt und Rust-Renderer.
+
+## Artefakte
+
+- EXE: `dist/publish/AtlayaView-2.0.33-win-x64/AtlayaView.exe` (mit .NET, self-contained)
+- EXE: `dist/publish/AtlayaView-2.0.33-win-x64-fx/AtlayaView.exe` (ohne .NET, framework-dependent)
+- ZIP: `dist/AtlayaView-2.0.33-win-x64.zip`, `dist/AtlayaView-2.0.33-win-x64-fx.zip`
+- Native DLL: `dist/publish/AtlayaView-2.0.33-win-x64/atlaya_renderer.dll`
+
+## 2.0.32 - 2026-07-19
+
+- Wichtiger Bugfix: Ein angewendetes Farbprofil landete bisher nur in einer Zwischenablage
+  (`_pending`) des Farbschema-Dialogs, die erst mit einem ZUSÄTZLICHEN, nicht offensichtlichen
+  „OK“-Klick auf diesem (durch den Farbprofil-Dialog teilweise verdeckten) Fenster tatsächlich
+  in die Anzeige übernommen wurde. Wer nach „Auf Liste anwenden“ nur den Farbprofil-Dialog
+  schloss, ohne zusätzlich auf dem dahinterliegenden Farbschema-Dialog „OK“ zu klicken, sah nie
+  eine Änderung – wurde wiederholt als „Profil wird nicht angewendet“ gemeldet. „Speichern“ und
+  „Auf Liste anwenden“ schreiben die Farben jetzt sofort und direkt in das aktive Farbschema und
+  stoßen unmittelbar ein Neu-Rendern des Treemaps an, auch während die Dialoge noch offen sind
+  – kein zweiter Bestätigungsschritt mehr nötig.
+- Release-Version auf 2.0.32 angehoben in .NET-Projekt und Rust-Renderer.
+
+## Artefakte
+
+- EXE: `dist/publish/AtlayaView-2.0.32-win-x64/AtlayaView.exe` (mit .NET, self-contained)
+- EXE: `dist/publish/AtlayaView-2.0.32-win-x64-fx/AtlayaView.exe` (ohne .NET, framework-dependent)
+- ZIP: `dist/AtlayaView-2.0.32-win-x64.zip`, `dist/AtlayaView-2.0.32-win-x64-fx.zip`
+- Native DLL: `dist/publish/AtlayaView-2.0.32-win-x64/atlaya_renderer.dll`
+
+## 2.0.31 - 2026-07-19
+
+- Bugfix: „Speichern" im Farbprofil-Dialog schrieb die Farben bisher nur in die wiederverwendbare
+  Profil-Vorlage auf der Festplatte, spielte sie aber nirgends in die aktuelle Ansicht ein –
+  sichtbar wurde eine Profilfarbe erst, wenn man zusätzlich (und nicht offensichtlich) auch noch
+  „Auf Liste anwenden" klickte. Beide Knöpfe übergeben die Farben jetzt sofort an den
+  Farbschema-Dialog; nach dessen „OK" erscheinen sie ohne erneuten Scan auf dem Treemap.
+- Release-Version auf 2.0.31 angehoben in .NET-Projekt und Rust-Renderer.
+
+## Artefakte
+
+- EXE: `dist/publish/AtlayaView-2.0.31-win-x64/AtlayaView.exe` (mit .NET, self-contained)
+- EXE: `dist/publish/AtlayaView-2.0.31-win-x64-fx/AtlayaView.exe` (ohne .NET, framework-dependent)
+- ZIP: `dist/AtlayaView-2.0.31-win-x64.zip`, `dist/AtlayaView-2.0.31-win-x64-fx.zip`
+- Native DLL: `dist/publish/AtlayaView-2.0.31-win-x64/atlaya_renderer.dll`
+
+## 2.0.30 - 2026-07-19
+
+- Wichtiger Bugfix: Farbprofile wurden korrekt in `ColorScheme` übernommen (per Testfall
+  verifiziert – Rendering zeigt nach `SetColor` sofort die richtige Farbe), erschienen aber auf
+  dem Treemap trotzdem nicht, wenn zuvor eine Legenden-Kategorie angeklickt worden war (Einzel-
+  oder Strg-Klick auf eine Kategorie-Kachel unten). In diesem Zustand übermalte der
+  Kategoriefilter JEDE Erweiterung außerhalb der aktiven Kategorie mit Dunkelgrau – auch
+  Erweiterungen mit einer gerade frisch zugewiesenen Profilfarbe. Fix: Eine explizit gesetzte
+  Farb-Override (u. a. aus einem Farbprofil) ist jetzt vom Kategoriefilter ausgenommen und bleibt
+  immer sichtbar, in beiden Renderern (nativ und verwalteter Fallback). Mit einem synthetischen
+  Testfall verifiziert: derselbe Pixel, der bei aktivem Fremd-Kategorie-Filter vorher grau wurde,
+  zeigt jetzt korrekt die zugewiesene Profilfarbe.
+- Release-Version auf 2.0.30 angehoben in .NET-Projekt und Rust-Renderer.
+
+## Artefakte
+
+- EXE: `dist/publish/AtlayaView-2.0.30-win-x64/AtlayaView.exe` (mit .NET, self-contained)
+- EXE: `dist/publish/AtlayaView-2.0.30-win-x64-fx/AtlayaView.exe` (ohne .NET, framework-dependent)
+- ZIP: `dist/AtlayaView-2.0.30-win-x64.zip`, `dist/AtlayaView-2.0.30-win-x64-fx.zip`
+- Native DLL: `dist/publish/AtlayaView-2.0.30-win-x64/atlaya_renderer.dll`
+
+## 2.0.29 - 2026-07-19
+
+- Bugfix: Der Farbprofil-Dialog war mit 620×520px zu klein für den neuen Inhalt (Such-/
+  Ankreuzliste, „Farbe aus Grundliste übernehmen"-Knopf) – der Farbwähler (Palette + Hex-Feld)
+  war dadurch unsichtbar und erst nach manuellem Vergrößern des Fensters erreichbar. Fenster
+  ist jetzt standardmäßig größer (680px hoch) und der Editor-Bereich zusätzlich in einen
+  ScrollViewer gepackt, damit künftige Ergänzungen nicht wieder unerreichbar werden.
+- Bugfix: `ColorSchemeDialog` startete seine Arbeitskopie der Farb-Overrides (`_pending`) leer
+  statt mit den bereits gesetzten Farben vorbefüllt. Da „OK" intern `ColorScheme.ResetAll()`
+  aufruft und danach nur `_pending` zurückspielt, gingen dadurch alle in der aktuellen Sitzung
+  nicht direkt angefassten, bereits gesetzten Farben verloren (z. B. aus einer früheren Sitzung
+  oder einem zuvor angewendeten Farbprofil) – jetzt wird `_pending` beim Öffnen des Dialogs mit
+  den aktuellen Overrides vorbefüllt.
+- Release-Version auf 2.0.29 angehoben in .NET-Projekt und Rust-Renderer.
+
+## Artefakte
+
+- EXE: `dist/publish/AtlayaView-2.0.29-win-x64/AtlayaView.exe` (mit .NET, self-contained)
+- EXE: `dist/publish/AtlayaView-2.0.29-win-x64-fx/AtlayaView.exe` (ohne .NET, framework-dependent)
+- ZIP: `dist/AtlayaView-2.0.29-win-x64.zip`, `dist/AtlayaView-2.0.29-win-x64-fx.zip`
+- Native DLL: `dist/publish/AtlayaView-2.0.29-win-x64/atlaya_renderer.dll`
+
+## 2.0.28 - 2026-07-19
+
+- Neu: Der Farbprofil-Editor (Farbschema-Dialog → „🎨 Farbprofile …") wurde umgebaut. Statt
+  Erweiterungen einzeln über ein Kombinationsfeld hinzuzufügen, zeigt eine durchsuchbare Liste
+  jetzt alle bekannten Erweiterungen mit Ankreuzfeld – angehakt = Teil des Profils. Der
+  Farbwähler (Palette-Kacheln und Hex-Feld) weist die gewählte Farbe direkt allen angehakten
+  Erweiterungen gemeinsam zu; ein neuer Knopf „Farbe aus Grundliste übernehmen" setzt für die
+  angehakten Erweiterungen stattdessen ihre bereits im Hauptfarbschema hinterlegte Farbe.
+  Farben bleiben beim zwischenzeitlichen Abhaken einer Erweiterung innerhalb derselben
+  Bearbeitung erhalten (erneutes Ankreuzen verliert die zuvor gesetzte Farbe nicht). Neue,
+  dem Farbschema noch unbekannte Erweiterungen weiterhin über ein Textfeld + „+" anlegbar.
+- Release-Version auf 2.0.28 angehoben in .NET-Projekt und Rust-Renderer.
+
+## Artefakte
+
+- EXE: `dist/publish/AtlayaView-2.0.28-win-x64/AtlayaView.exe` (mit .NET, self-contained)
+- EXE: `dist/publish/AtlayaView-2.0.28-win-x64-fx/AtlayaView.exe` (ohne .NET, framework-dependent)
+- ZIP: `dist/AtlayaView-2.0.28-win-x64.zip`, `dist/AtlayaView-2.0.28-win-x64-fx.zip`
+- Native DLL: `dist/publish/AtlayaView-2.0.28-win-x64/atlaya_renderer.dll`
+
 ## 2.0.27 - 2026-07-19
 
 - Bugfix: In der Multi-Laufwerk-Ansicht bekam ein deutlich kleineres Laufwerk neben einem

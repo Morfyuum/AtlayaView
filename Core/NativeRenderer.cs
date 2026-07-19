@@ -269,7 +269,12 @@ internal static class NativeRenderer
         }
 
         var color = ColorScheme.GetColor(node.Extension);
-        if (activeCategories != null && !activeCategories.Contains(ColorScheme.GetCategory(node.Extension)))
+        // Eine explizit gesetzte Farbe (z. B. aus einem Farbprofil) bleibt sichtbar, auch wenn
+        // der Legenden-Kategoriefilter gerade eine andere Kategorie isoliert -- sonst wirkt ein
+        // gerade zugewiesenes Farbprofil so, als würde es gar nicht angewendet (Bugreport:
+        // "Farbprofil wird nicht auf die Darstellung angewendet").
+        if (activeCategories != null && !ColorScheme.HasOverride(node.Extension)
+            && !activeCategories.Contains(ColorScheme.GetCategory(node.Extension)))
             color = System.Windows.Media.Color.FromRgb(45, 45, 52);
 
         leaves.Add(new NativeLeaf(

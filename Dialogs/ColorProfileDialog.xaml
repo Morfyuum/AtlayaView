@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:app="clr-namespace:AtlayaView"
         Title="{Binding ProfileWindowTitle, Source={x:Static app:App.Loc}}"
-        Width="620" Height="520" MinWidth="560" MinHeight="440"
+        Width="620" Height="680" MinWidth="560" MinHeight="560"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource BgDeepBrush}"
         ResizeMode="CanResizeWithGrip" ShowInTaskbar="False">
@@ -61,52 +61,66 @@
       <Rectangle Grid.Column="1" Fill="{StaticResource BorderBrush2}" Width="1" HorizontalAlignment="Center"/>
 
       <!-- Editor -->
-      <DockPanel Grid.Column="2" Margin="8,0,0,0">
+      <ScrollViewer Grid.Column="2" Margin="8,0,0,0"
+                    VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <DockPanel>
         <TextBlock DockPanel.Dock="Top"
                    Text="{Binding ProfileNameLabel, Source={x:Static app:App.Loc}}"
                    FontSize="11" FontWeight="SemiBold"
                    Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-        <TextBox DockPanel.Dock="Top" x:Name="txtName" Margin="0,0,0,12"/>
+        <TextBox DockPanel.Dock="Top" x:Name="txtName" AutomationProperties.AutomationId="txtName" Margin="0,0,0,12"/>
 
         <TextBlock DockPanel.Dock="Top"
                    Text="{Binding ProfileExtensionsLabel, Source={x:Static app:App.Loc}}"
                    FontSize="11" FontWeight="SemiBold"
                    Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
-          <Button DockPanel.Dock="Right" x:Name="btnAddExtension" Content="+" Width="30"
-                  Style="{StaticResource ToolButtonStyle}" Margin="6,0,0,0" Click="BtnAddExtension_Click"/>
-          <ComboBox x:Name="cmbAddExtension" IsEditable="True" KeyDown="CmbAddExtension_KeyDown"/>
-        </DockPanel>
-        <Border DockPanel.Dock="Top" Height="120" Margin="0,0,0,4"
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,6">
+          <TextBox x:Name="txtExtSearch" AutomationProperties.AutomationId="txtExtSearch" TextChanged="TxtExtSearch_Changed"/>
+          <TextBlock Text="{Binding ColorSearchHint, Source={x:Static app:App.Loc}}"
+                     IsHitTestVisible="False" Padding="8,5"
+                     Foreground="{StaticResource TextSecondaryBrush}">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Text, ElementName=txtExtSearch}" Value="">
+                    <Setter Property="Visibility" Value="Visible"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+        </Grid>
+        <Border DockPanel.Dock="Top" Height="140" Margin="0,0,0,4"
                 BorderBrush="{StaticResource BorderBrush2}" BorderThickness="1" CornerRadius="4">
-          <ListBox x:Name="lstProfileExtensions" BorderThickness="0" Background="Transparent"
-                   SelectionChanged="LstProfileExtensions_SelectionChanged">
+          <ListBox x:Name="lstProfileExtensions" BorderThickness="0" Background="Transparent">
             <ListBox.ItemTemplate>
               <DataTemplate>
-                <Grid Margin="4,2">
-                  <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                  </Grid.ColumnDefinitions>
-                  <Rectangle Grid.Column="0" Width="12" Height="12" Fill="{Binding Brush}"
-                             RadiusX="3" RadiusY="3" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                  <TextBlock Grid.Column="1" Text="{Binding Extension}" VerticalAlignment="Center"/>
-                  <Button Grid.Column="2" Content="×" Width="20" Height="20" Padding="0"
-                          Style="{StaticResource ToolButtonStyle}" Tag="{Binding Extension}"
-                          Click="BtnRemoveExtension_Click"/>
-                </Grid>
+                <CheckBox IsChecked="{Binding IsChecked, Mode=OneWay}" Tag="{Binding Extension}"
+                          AutomationProperties.AutomationId="{Binding Extension}"
+                          Margin="4,2" Checked="ExtCheck_Changed" Unchecked="ExtCheck_Changed">
+                  <StackPanel Orientation="Horizontal">
+                    <Rectangle Width="12" Height="12" Fill="{Binding Brush}"
+                               RadiusX="3" RadiusY="3" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding Extension}" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </CheckBox>
               </DataTemplate>
             </ListBox.ItemTemplate>
           </ListBox>
         </Border>
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+          <Button DockPanel.Dock="Right" x:Name="btnAddExtension" AutomationProperties.AutomationId="btnAddExtension" Content="+" Width="30"
+                  Style="{StaticResource ToolButtonStyle}" Margin="6,0,0,0" Click="BtnAddExtension_Click"/>
+          <TextBox x:Name="txtNewExtension" AutomationProperties.AutomationId="txtNewExtension" KeyDown="TxtNewExtension_KeyDown"/>
+        </DockPanel>
         <TextBlock DockPanel.Dock="Top"
                    Text="{Binding ProfileExtensionsHint, Source={x:Static app:App.Loc}}"
                    FontSize="10" TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}"
                    Margin="0,0,0,14"/>
 
         <TextBlock DockPanel.Dock="Top" x:Name="lblColorTarget"
-                   Text="{Binding ProfileColorTargetDefault, Source={x:Static app:App.Loc}}"
+                   Text="{Binding ProfileColorTargetChecked, Source={x:Static app:App.Loc}}"
                    FontSize="11" FontWeight="SemiBold"
                    Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
@@ -114,10 +128,14 @@
                   BorderBrush="{StaticResource BorderBrush2}" BorderThickness="1" Margin="0,0,12,0">
             <Border x:Name="colorPreview" CornerRadius="5"/>
           </Border>
-          <TextBox x:Name="txtHex" Width="80" MaxLength="6" CharacterCasing="Upper"
+          <TextBox x:Name="txtHex" AutomationProperties.AutomationId="txtHex" Width="80" MaxLength="6" CharacterCasing="Upper"
                    VerticalAlignment="Center" TextChanged="TxtHex_Changed"/>
         </StackPanel>
-        <WrapPanel DockPanel.Dock="Top" x:Name="palettePanel" Margin="0,0,0,14"/>
+        <WrapPanel DockPanel.Dock="Top" x:Name="palettePanel" Margin="0,0,0,8"/>
+        <Button DockPanel.Dock="Top" x:Name="btnUseListColor" HorizontalAlignment="Left"
+                Content="{Binding ProfileBtnUseListColor, Source={x:Static app:App.Loc}}"
+                Style="{StaticResource ToolButtonStyle}" Padding="10,5" Margin="0,0,0,14"
+                Click="BtnUseListColor_Click"/>
 
         <!-- Status -->
         <TextBlock DockPanel.Dock="Top" x:Name="txtStatus" TextWrapping="Wrap"
@@ -126,6 +144,7 @@
 
         <StackPanel/>
       </DockPanel>
+      </ScrollViewer>
     </Grid>
 
     <!-- Buttons -->
@@ -133,10 +152,10 @@
       <Button x:Name="btnDelete" Content="{Binding ProfileBtnDelete, Source={x:Static app:App.Loc}}"
               Style="{StaticResource ToolButtonStyle}" Padding="14,7" Margin="0,0,8,0"
               Foreground="{StaticResource TextSecondaryBrush}" Click="BtnDelete_Click" IsEnabled="False"/>
-      <Button x:Name="btnSave" Content="{Binding ProfileBtnSave, Source={x:Static app:App.Loc}}"
+      <Button x:Name="btnSave" AutomationProperties.AutomationId="btnSave" Content="{Binding ProfileBtnSave, Source={x:Static app:App.Loc}}"
               Style="{StaticResource ToolButtonStyle}" Padding="14,7" Margin="0,0,8,0"
               Click="BtnSave_Click"/>
-      <Button x:Name="btnApply" Content="{Binding ProfileBtnApply, Source={x:Static app:App.Loc}}"
+      <Button x:Name="btnApply" AutomationProperties.AutomationId="btnApply" Content="{Binding ProfileBtnApply, Source={x:Static app:App.Loc}}"
               Style="{StaticResource AccentButtonStyle}" Padding="16,7" Margin="0,0,8,0"
               Click="BtnApply_Click" IsEnabled="False"/>
       <Button Content="{Binding ProfileBtnClose, Source={x:Static app:App.Loc}}"

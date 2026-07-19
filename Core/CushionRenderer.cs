@@ -216,8 +216,10 @@ public sealed class CushionRenderer
 
         var baseColor = ColorScheme.GetColor(node.Extension);
 
-        // Kategorie-Filter: inaktive Dateien dunkelgrau
+        // Kategorie-Filter: inaktive Dateien dunkelgrau -- eine explizit gesetzte Override-Farbe
+        // (z. B. aus einem Farbprofil) bleibt davon ausgenommen, siehe NativeRenderer.Flatten.
         bool dimmed = ctx.ActiveCategories != null
+                   && !ColorScheme.HasOverride(node.Extension)
                    && !ctx.ActiveCategories.Contains(ColorScheme.GetCategory(node.Extension));
         if (dimmed) baseColor = Color.FromRgb(45, 45, 52);
 

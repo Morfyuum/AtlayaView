@@ -27,6 +27,9 @@ public sealed class SettingsStore
     // ── Farbschema-Overrides ─────────────────────────────────────────────────
     public Dictionary<string, string> ColorOverrides { get; set; } = [];
 
+    // ── Aktives Farbprofil (exklusive Fokus-Ansicht), "" = Startprofil ──────
+    public string ActiveColorProfile { get; set; } = "";
+
     // ── Datei-Öffner (Extension → EXE-Pfad) ─────────────────────────────────
     public Dictionary<string, string> FileOpeners { get; set; } = [];
 
@@ -75,6 +78,8 @@ public sealed class SettingsStore
 
             foreach (var (ext, color) in ColorScheme.Overrides)
                 store.ColorOverrides[ext] = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+
+            store.ActiveColorProfile = ColorScheme.ActiveProfileName ?? "";
 
             store.Language             = LocalizationManager.Instance.Language.ToString();
             store.ShowFreeSpaceCushion = showFreeSpaceCushion;
@@ -130,6 +135,22 @@ public sealed class SettingsStore
         {
             if (TryParseHex(hex, out var c))
                 ColorScheme.SetColor(ext, c);
+        }
+
+        // Aktives Farbprofil wiederherstellen (exklusive Fokus-Ansicht). Existiert das Profil
+        // nicht mehr (umbenannt/geloescht), still zurueck zum Startprofil.
+        if (!string.IsNullOrEmpty(ActiveColorProfile))
+        {
+            var prof = ColorProfileStore.Load().FirstOrDefault(
+                p => p.Name.Equals(ActiveColorProfile, StringComparison.OrdinalIgnoreCase));
+            if (prof != null)
+                ColorScheme.ApplyExclusiveProfile(prof.Name, prof.ExtensionColors);
+            else
+                ColorScheme.ClearActiveProfile();
+        }
+        else
+        {
+            ColorScheme.ClearActiveProfile();
         }
 
         if (Enum.TryParse<AppLanguage>(Language, out var lang))

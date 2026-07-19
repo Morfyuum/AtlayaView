@@ -38,7 +38,7 @@
       <DockPanel Grid.Column="0">
         <!-- Suche mit lokalisiertem Placeholder -->
         <Grid DockPanel.Dock="Top" Margin="0,0,0,6">
-          <TextBox x:Name="txtSearch"
+          <TextBox x:Name="txtSearch" AutomationProperties.AutomationId="txtSearch"
                    Text="" TextChanged="TxtSearch_Changed"/>
           <TextBlock x:Name="txtSearchHint"
                      Text="{Binding ColorSearchHint, Source={x:Static app:App.Loc}}"
@@ -59,6 +59,7 @@
 
         <!-- Farbprofile -->
         <Button DockPanel.Dock="Bottom" x:Name="btnColorProfiles"
+                AutomationProperties.AutomationId="btnColorProfiles"
                 Content="{Binding ColorProfilesButton, Source={x:Static app:App.Loc}}"
                 ToolTip="{Binding ProfileDialogHint, Source={x:Static app:App.Loc}}"
                 Style="{StaticResource ToolButtonStyle}" Padding="8,6"
@@ -103,7 +104,7 @@
                  SelectionChanged="LstExtensions_SelectionChanged">
           <ListBox.ItemTemplate>
             <DataTemplate>
-              <StackPanel Orientation="Horizontal">
+              <StackPanel Orientation="Horizontal" AutomationProperties.AutomationId="{Binding Extension}">
                 <Rectangle Width="14" Height="14" Fill="{Binding Brush}"
                            RadiusX="3" RadiusY="3" Margin="0,0,8,0"
                            VerticalAlignment="Center"/>
@@ -204,7 +205,7 @@
           <TextBlock Grid.Row="3" Grid.Column="0" Text="#" FontWeight="Bold"
                      Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
           <TextBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2"
-                   x:Name="txtHex" Margin="4,4"
+                   x:Name="txtHex" AutomationProperties.AutomationId="txtHexScheme" Margin="4,4"
                    MaxLength="6" CharacterCasing="Upper"
                    TextChanged="TxtHex_Changed"/>
         </Grid>
@@ -264,6 +265,7 @@
               Padding="14,7" Margin="0,0,8,0" IsCancel="True"
               Click="BtnCancel_Click"/>
       <Button Content="{Binding BtnOkText, Source={x:Static app:App.Loc}}" Style="{StaticResource AccentButtonStyle}"
+              AutomationProperties.AutomationId="btnOk"
               Padding="24,7" IsDefault="True" Click="BtnOk_Click"/>
     </StackPanel>
 

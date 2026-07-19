@@ -56,6 +56,12 @@ public partial class ColorSchemeDialog : Window
         InitializeComponent();
         AtlayaView.Core.WindowFrameFix.Apply(this);
         BuildPalette();
+        // Bestehende Overrides als Ausgangszustand uebernehmen: BtnOk_Click ruft ColorScheme.ResetAll()
+        // auf und spielt danach nur noch _pending zurueck -- ohne diese Vorbefuellung wuerden alle in
+        // dieser Sitzung nicht angefassten, bereits gesetzten Farben (z. B. aus fruehreren Sitzungen
+        // oder von einem zuvor angewendeten Farbprofil) beim naechsten OK stillschweigend verworfen.
+        foreach (var kv in ColorScheme.Overrides)
+            _pending[kv.Key] = kv.Value;
         _installedViewers = FileOpenerStore.FindInstalledViewers();
         // Aktuelle Opener-Zuordnungen als Ausgangszustand
         foreach (var kv in FileOpenerStore.Openers)
@@ -96,6 +102,7 @@ public partial class ColorSchemeDialog : Window
     {
         var effective = ColorScheme.EffectiveMap;
         var defaultColor = Color.FromRgb(100, 110, 130);
+        bool profileActive = ColorScheme.ActiveProfileName != null;
 
         _allItems = ColorScheme.AllExtensions
             .Concat(_pendingNewExtensions)
@@ -105,15 +112,19 @@ public partial class ColorSchemeDialog : Window
             .OrderBy(ext => ext, StringComparer.OrdinalIgnoreCase)
             .Select(ext =>
             {
-                // Pending-Overrides haben Priorität
-                var color = _pending.TryGetValue(ext, out var ov) ? ov
+                // Bei aktivem Farbprofil zeigt die Liste den echten Anzeige-Zustand: Profilfarbe
+                // fuer Mitglieder, Silbergrau fuer alle uebrigen. Sonst Pending-Overrides zuerst.
+                var color = profileActive ? ColorScheme.GetColor(ext)
+                    : _pending.TryGetValue(ext, out var ov) ? ov
                     : effective.TryGetValue(ext, out var ec) ? ec
                     : defaultColor;
                 return new ExtColorItem
                 {
                     Extension  = ext,
                     Brush      = new SolidColorBrush(color),
-                    IsOverride = _pending.ContainsKey(ext) || ColorScheme.HasOverride(ext)
+                    IsOverride = profileActive
+                        ? ColorScheme.HasOverride(ext)
+                        : _pending.ContainsKey(ext) || ColorScheme.HasOverride(ext)
                 };
             })
             .ToList();
@@ -190,28 +201,39 @@ public partial class ColorSchemeDialog : Window
     private void BtnColorProfiles_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new ColorProfileDialog { Owner = this };
-        if (dlg.ShowDialog() != true || dlg.AppliedProfile == null)
-            return;
+        // Feuert sowohl bei "Speichern" als auch bei "Auf Liste anwenden".
+        dlg.ProfileApplied += ApplyProfileLive;
+        dlg.ShowDialog();
+    }
 
-        var profile = dlg.AppliedProfile;
-
-        foreach (var (rawExt, hex) in profile.ExtensionColors)
-        {
-            var ext = NormalizeExtension(rawExt);
-            Color color;
-            try { color = (Color)System.Windows.Media.ColorConverter.ConvertFromString(hex)!; }
-            catch { color = Palette[4]; }
-
-            bool alreadyExists = ColorScheme.AllExtensions.Contains(ext, StringComparer.OrdinalIgnoreCase)
-                               || _pendingNewExtensions.Contains(ext);
-            if (!alreadyExists)
-                _pendingNewExtensions.Add(ext);
-            _pending[ext] = color;
-        }
+    /// <summary>
+    /// Reagiert auf einen Profilwechsel im Farbprofil-Dialog (null = Startprofil). Die exklusive
+    /// Anwendung ist zu diesem Zeitpunkt bereits in ColorScheme passiert
+    /// (ApplyExclusiveProfile/ClearActiveProfile) -- hier wird nur noch die Erweiterungsliste
+    /// aufgefrischt, der Treemap sofort neu gerendert und der Zustand persistiert, damit der
+    /// Profilwechsel auch ein Schliessen ohne "OK" und den naechsten Programmstart ueberlebt.
+    /// </summary>
+    private void ApplyProfileLive(ColorProfile? profile)
+    {
+        // LoadItems() baut _allItems komplett neu auf (neue ExtColorItem-Instanzen) -- _current
+        // zeigt danach noch auf das alte Objekt; ohne erneute Auswahl bliebe der Farbwaehler
+        // rechts (Vorschau/RGB-Slider/Hex) auf dem alten Wert stehen.
+        var reselectExt = _current?.Extension;
 
         HideAddExtStatus();
         LoadItems(txtSearch.Text.Trim());
-        ShowAddExtStatus(string.Format(App.Loc.ProfileAppliedStatus, profile.Name, profile.ExtensionColors.Count));
+        ShowAddExtStatus(profile == null
+            ? App.Loc.ProfileDefaultAppliedStatus
+            : string.Format(App.Loc.ProfileAppliedStatus, profile.Name, profile.ExtensionColors.Count));
+
+        if (reselectExt != null)
+            SelectExtension(reselectExt);
+
+        if (Owner is MainWindow mw)
+        {
+            mw.RequestImmediateRerender();
+            mw.PersistSettingsNow();
+        }
     }
 
     // ── Auswahl-Änderung ─────────────────────────────────────────────────────
@@ -334,11 +356,29 @@ public partial class ColorSchemeDialog : Window
 
     private void BtnResetAll_Click(object sender, RoutedEventArgs e)
     {
+        // Wie bei ApplyProfileLive: nicht nur die Zwischenablage leeren, sondern auch ColorScheme
+        // selbst zuruecksetzen (inkl. eines aktiven Farbprofils) und sofort neu rendern -- sonst
+        // blieb der Treemap auf den zuvor angewendeten Farben stehen, "Alle zuruecksetzen" wirkte
+        // wie ein Reinfall.
+        var reselectExt = _current?.Extension;
+
         _pending.Clear();
+        ColorScheme.ResetAll();
+        ColorScheme.ClearActiveProfile();
         LoadItems(txtSearch.Text.Trim());
-        if (_current != null) LoadColorIntoControls(
-            ColorScheme.Map.TryGetValue(_current.Extension, out var dc)
-                ? dc : Color.FromRgb(100, 110, 130));
+
+        if (reselectExt != null)
+            SelectExtension(reselectExt);
+        else if (_current != null)
+            LoadColorIntoControls(
+                ColorScheme.Map.TryGetValue(_current.Extension, out var dc)
+                    ? dc : Color.FromRgb(100, 110, 130));
+
+        if (Owner is MainWindow mw)
+        {
+            mw.RequestImmediateRerender();
+            mw.PersistSettingsNow();
+        }
     }
 
     // ── Dialog-Buttons ────────────────────────────────────────────────────────

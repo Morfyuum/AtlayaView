@@ -11,13 +11,17 @@ public sealed class ProfileListItem
     public required ColorProfile Profile { get; init; }
     public SolidColorBrush Brush { get; init; } = new(Colors.Gray);
     public string CountText { get; init; } = string.Empty;
+
+    /// <summary>true = fest eingebautes „Startprofil“ (Standardfarben, nicht lösch-/editierbar).</summary>
+    public bool IsDefault { get; init; }
 }
 
-/// <summary>Listeneintrag für eine Erweiterung innerhalb des gerade bearbeiteten Profils.</summary>
+/// <summary>Listeneintrag für eine auswählbare (ankreuzbare) Erweiterung im Profil-Editor.</summary>
 public sealed class ProfileExtItem
 {
     public string Extension { get; init; } = string.Empty;
     public string ColorHex { get; init; } = "#647882";
+    public bool IsChecked { get; init; }
     public SolidColorBrush Brush { get; init; } = new(Colors.Gray);
 }
 
@@ -38,19 +42,29 @@ public partial class ColorProfileDialog : Window
     private ColorProfile? _selected;
     private bool _suppressUpdate;
 
-    // Arbeitskopie der Erweiterungen des gerade bearbeiteten Profils (Erweiterung → Hex-Farbe),
-    // unabhängig vom gespeicherten Profil bis "Speichern" bzw. "Auf Liste anwenden" geklickt wird.
-    private readonly Dictionary<string, string> _editingExtensions =
-        new(StringComparer.OrdinalIgnoreCase);
+    // Angehakte Erweiterungen = Mitglieder des gerade bearbeiteten Profils.
+    private readonly HashSet<string> _checkedExtensions = new(StringComparer.OrdinalIgnoreCase);
 
-    // Standardfarbe des Profils (Muster in der Profilliste + Startfarbe für neue Erweiterungen).
-    private string _defaultColorHex = "#647882";
+    // Farben, die in dieser Editier-Session für eine Erweiterung gesetzt wurden - bleibt auch
+    // erhalten, wenn die Erweiterung zwischenzeitlich abgehakt wird, damit ein erneutes Ankreuzen
+    // die Farbe nicht verliert (nur _checkedExtensions bestimmt, was am Ende gespeichert wird).
+    private readonly Dictionary<string, string> _editingExtensions = new(StringComparer.OrdinalIgnoreCase);
 
-    // Wenn gesetzt: der Farbwähler bearbeitet die Farbe dieser Erweiterung statt der Profil-Standardfarbe.
-    private string? _selectedRowExt;
+    // Musterfarbe für die Profilliste (nicht pro Erweiterung, sondern für das Profil als Ganzes).
+    private string _profileColorHex = "#647882";
 
-    /// <summary>Wird gesetzt, wenn der Nutzer "Auf Liste anwenden" geklickt hat.</summary>
-    public ColorProfile? AppliedProfile { get; private set; }
+    /// <summary>
+    /// Feuert, sobald sich das aktive Farbprofil geändert hat (Auswahl in der Liste, Speichern,
+    /// "Auf Liste anwenden" oder Rückkehr zum Startprofil). Die exklusive Anwendung selbst passiert
+    /// bereits über ColorScheme.ApplyExclusiveProfile/ClearActiveProfile -- der Empfänger
+    /// (ColorSchemeDialog) muss nur noch seine Anzeige auffrischen, neu rendern und persistieren.
+    /// null = Startprofil (Standardfarben) wurde gewählt.
+    /// </summary>
+    public event Action<ColorProfile?>? ProfileApplied;
+
+    // Unterdrückt das Anwenden während der Vorselektion beim Öffnen des Dialogs (das dort
+    // selektierte Profil IST bereits aktiv -- erneutes Anwenden + Speichern wäre nur Lärm).
+    private bool _initializing;
 
     public ColorProfileDialog()
     {
@@ -58,8 +72,23 @@ public partial class ColorProfileDialog : Window
         AtlayaView.Core.WindowFrameFix.Apply(this);
         BuildPalette();
         _profiles = ColorProfileStore.Load();
-        RefreshList(null);
-        ClearEditor();
+
+        // Beim Öffnen das gerade aktive Profil vorselektieren (bzw. das Startprofil).
+        _initializing = true;
+        var active = ColorScheme.ActiveProfileName == null ? null
+            : _profiles.FirstOrDefault(p => p.Name.Equals(ColorScheme.ActiveProfileName, StringComparison.OrdinalIgnoreCase));
+        if (active != null)
+        {
+            RefreshList(active);
+        }
+        else
+        {
+            RefreshList(null, selectDefault: true);
+            ClearEditorFields();
+            btnDelete.IsEnabled = false;
+            btnApply.IsEnabled = false;
+        }
+        _initializing = false;
     }
 
     private void BuildPalette()
@@ -75,28 +104,39 @@ public partial class ColorProfileDialog : Window
                 Tag = c,
                 Style = (Style)FindResource("ToolButtonStyle")
             };
-            btn.Click += (_, _) => { if (btn.Tag is Color pc) { SetColor(pc); ApplyColorToTarget(pc); } };
+            btn.Click += (_, _) => { if (btn.Tag is Color pc) { SetColor(pc); ApplyColorToChecked(pc); } };
             palettePanel.Children.Add(btn);
         }
     }
 
     // ── Profilliste ──────────────────────────────────────────────────────────
-    private void RefreshList(ColorProfile? selectAfter)
+    private void RefreshList(ColorProfile? selectAfter, bool selectDefault = false)
     {
-        var items = _profiles.Select(p => new ProfileListItem
+        // Position 0 ist immer das fest eingebaute Startprofil (= Standardfarben, kein
+        // exklusives Profil aktiv) -- nicht lösch- oder editierbar, dient nur als Umschalter.
+        var items = new List<ProfileListItem>
+        {
+            new()
+            {
+                Profile = new ColorProfile { Name = App.Loc.ProfileDefaultName },
+                Brush = new SolidColorBrush(Color.FromRgb(150, 150, 158)),
+                CountText = App.Loc.ProfileDefaultCount,
+                IsDefault = true
+            }
+        };
+        items.AddRange(_profiles.Select(p => new ProfileListItem
         {
             Profile = p,
             Brush = new SolidColorBrush(ParseHex(p.ColorHex)),
             CountText = string.Format(App.Loc.ProfileExtCountFmt, p.ExtensionColors.Count)
-        }).ToList();
+        }));
 
         lstProfiles.ItemsSource = items;
 
-        if (selectAfter != null)
-        {
-            var match = items.FirstOrDefault(i => ReferenceEquals(i.Profile, selectAfter));
-            lstProfiles.SelectedItem = match;
-        }
+        if (selectDefault)
+            lstProfiles.SelectedItem = items[0];
+        else if (selectAfter != null)
+            lstProfiles.SelectedItem = items.FirstOrDefault(i => ReferenceEquals(i.Profile, selectAfter));
     }
 
     private void LstProfiles_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -108,6 +148,22 @@ public partial class ColorProfileDialog : Window
             return;
         }
 
+        // Startprofil gewählt: exklusives Profil beenden, Standardfarben gelten wieder.
+        if (item.IsDefault)
+        {
+            _selected = null;
+            btnDelete.IsEnabled = false;
+            btnApply.IsEnabled = false;
+            ClearEditorFields();
+            if (!_initializing)
+            {
+                ColorScheme.ClearActiveProfile();
+                ProfileApplied?.Invoke(null);
+                ShowStatus(App.Loc.ProfileDefaultAppliedStatus);
+            }
+            return;
+        }
+
         _selected = item.Profile;
         btnDelete.IsEnabled = true;
         btnApply.IsEnabled = true;
@@ -116,30 +172,49 @@ public partial class ColorProfileDialog : Window
         txtName.Text = item.Profile.Name;
         _suppressUpdate = false;
 
+        _checkedExtensions.Clear();
         _editingExtensions.Clear();
         foreach (var kv in item.Profile.ExtensionColors)
+        {
+            _checkedExtensions.Add(kv.Key);
             _editingExtensions[kv.Key] = kv.Value;
+        }
+        _profileColorHex = item.Profile.ColorHex;
 
-        _selectedRowExt = null;
-        RefreshAddCombo();
-        RefreshExtensionList(null);
-        SetDefaultColor(ParseHex(item.Profile.ColorHex));
-        HideStatus();
+        RefreshExtensionList();
+        SetColor(ParseHex(_profileColorHex));
+
+        // Umschalten = anwenden: Schon die Auswahl eines Profils in der Liste aktiviert es
+        // EXKLUSIV -- seine Erweiterungen bekommen die Profilfarben, alle uebrigen Silbergrau.
+        // Kein zusaetzlicher "Speichern"/"Auf Liste anwenden"-Klick noetig; die Profilliste ist
+        // die alleinige Umschaltung (Startprofil an Position 0 = zurueck zu Standardfarben).
+        if (!_initializing)
+        {
+            ColorScheme.ApplyExclusiveProfile(item.Profile.Name, item.Profile.ExtensionColors);
+            ProfileApplied?.Invoke(item.Profile);
+            ShowStatus(string.Format(App.Loc.ProfileAppliedStatus, item.Profile.Name, item.Profile.ExtensionColors.Count));
+        }
     }
 
     // ── Editor ───────────────────────────────────────────────────────────────
+    /// <summary>Leert nur die Editor-Felder, ohne die Listen-Selektion anzufassen.</summary>
+    private void ClearEditorFields()
+    {
+        _suppressUpdate = true;
+        txtName.Text = string.Empty;
+        _suppressUpdate = false;
+        _checkedExtensions.Clear();
+        _editingExtensions.Clear();
+        _profileColorHex = $"#{Palette[4].R:X2}{Palette[4].G:X2}{Palette[4].B:X2}";
+        RefreshExtensionList();
+        SetColor(Palette[4]);
+    }
+
     private void ClearEditor()
     {
         _selected = null;
         lstProfiles.SelectedItem = null;
-        _suppressUpdate = true;
-        txtName.Text = string.Empty;
-        _suppressUpdate = false;
-        _editingExtensions.Clear();
-        _selectedRowExt = null;
-        RefreshAddCombo();
-        RefreshExtensionList(null);
-        SetDefaultColor(Palette[4]);
+        ClearEditorFields();
         btnDelete.IsEnabled = false;
         btnApply.IsEnabled = false;
         HideStatus();
@@ -148,100 +223,69 @@ public partial class ColorProfileDialog : Window
 
     private void BtnNew_Click(object sender, RoutedEventArgs e) => ClearEditor();
 
-    // ── Farbwähler ───────────────────────────────────────────────────────────
-    private void SetColor(Color c)
+    // ── Erweiterungs-Auswahlliste ────────────────────────────────────────────
+    private void RefreshExtensionList()
     {
-        colorPreview.Background = new SolidColorBrush(c);
-        _suppressUpdate = true;
-        txtHex.Text = $"{c.R:X2}{c.G:X2}{c.B:X2}";
-        _suppressUpdate = false;
-        btnApply.IsEnabled = true;
-    }
-
-    private void SetDefaultColor(Color c)
-    {
-        _defaultColorHex = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
-        lblColorTarget.Text = App.Loc.ProfileColorTargetDefault;
-        SetColor(c);
-    }
-
-    private Color CurrentDefaultColor()
-    {
-        try { return ParseHex(_defaultColorHex); }
-        catch { return Palette[4]; }
-    }
-
-    private void TxtHex_Changed(object sender, TextChangedEventArgs e)
-    {
-        if (_suppressUpdate || txtHex.Text.Length != 6) return;
-        try
-        {
-            var c = ParseHex("#" + txtHex.Text);
-            colorPreview.Background = new SolidColorBrush(c);
-            ApplyColorToTarget(c);
-        }
-        catch { /* ungueltige Hex-Eingabe waehrend des Tippens ignorieren */ }
-    }
-
-    /// <summary>Überträgt die aktuelle Picker-Farbe auf die ausgewählte Zeile bzw. die Profil-Standardfarbe.</summary>
-    private void ApplyColorToTarget(Color c)
-    {
-        var hex = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
-        if (_selectedRowExt != null)
-        {
-            _editingExtensions[_selectedRowExt] = hex;
-            RefreshExtensionList(_selectedRowExt);
-        }
-        else
-        {
-            _defaultColorHex = hex;
-        }
-        btnApply.IsEnabled = true;
-    }
-
-    // ── Erweiterungsliste des Profils ────────────────────────────────────────
-    private void RefreshExtensionList(string? selectExt)
-    {
-        var items = _editingExtensions
-            .OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
-            .Select(kv => new ProfileExtItem
+        var filter = txtExtSearch.Text.Trim();
+        var all = ColorScheme.AllExtensions
+            .Concat(_checkedExtensions)
+            .Concat(_editingExtensions.Keys)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(ext => string.IsNullOrEmpty(filter) || ext.Contains(filter, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(ext => ext, StringComparer.OrdinalIgnoreCase)
+            .Select(ext =>
             {
-                Extension = kv.Key,
-                ColorHex  = kv.Value,
-                Brush     = new SolidColorBrush(ParseHex(kv.Value))
+                var hex = _editingExtensions.TryGetValue(ext, out var h) ? h : HexOf(ColorScheme.GetBaseColor(ext));
+                return new ProfileExtItem
+                {
+                    Extension = ext,
+                    ColorHex = hex,
+                    IsChecked = _checkedExtensions.Contains(ext),
+                    Brush = new SolidColorBrush(ParseHex(hex))
+                };
             })
             .ToList();
 
-        lstProfileExtensions.ItemsSource = items;
-
-        if (selectExt != null)
-        {
-            var match = items.FirstOrDefault(i => string.Equals(i.Extension, selectExt, StringComparison.OrdinalIgnoreCase));
-            lstProfileExtensions.SelectedItem = match;
-        }
+        lstProfileExtensions.ItemsSource = all;
+        UpdateApplyEnabled();
     }
 
-    private void RefreshAddCombo()
+    private void TxtExtSearch_Changed(object sender, TextChangedEventArgs e) => RefreshExtensionList();
+
+    private void ExtCheck_Changed(object sender, RoutedEventArgs e)
     {
-        var available = ColorScheme.AllExtensions
-            .Where(ext => !_editingExtensions.ContainsKey(ext))
-            .OrderBy(ext => ext, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        cmbAddExtension.ItemsSource = available;
-        cmbAddExtension.Text = string.Empty;
+        if (sender is not CheckBox { Tag: string ext } cb) return;
+
+        if (cb.IsChecked == true)
+        {
+            _checkedExtensions.Add(ext);
+            // Erstmalig angehakt (nie zuvor in dieser Session eine eigene Farbe bekommen):
+            // Startfarbe aus der Grundliste übernehmen.
+            if (!_editingExtensions.ContainsKey(ext))
+                _editingExtensions[ext] = HexOf(ColorScheme.GetBaseColor(ext));
+        }
+        else
+        {
+            _checkedExtensions.Remove(ext);
+        }
+
+        UpdateApplyEnabled();
+        HideStatus();
     }
 
-    private void CmbAddExtension_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    private void UpdateApplyEnabled() => btnApply.IsEnabled = _checkedExtensions.Count > 0;
+
+    private void TxtNewExtension_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         if (e.Key == System.Windows.Input.Key.Enter)
-            AddExtension();
+            AddNewExtension();
     }
 
-    private void BtnAddExtension_Click(object sender, RoutedEventArgs e) => AddExtension();
+    private void BtnAddExtension_Click(object sender, RoutedEventArgs e) => AddNewExtension();
 
-    private void AddExtension()
+    private void AddNewExtension()
     {
-        var raw = cmbAddExtension.Text;
+        var raw = txtNewExtension.Text;
         if (string.IsNullOrWhiteSpace(raw)) return;
 
         var ext = NormalizeExtension(raw);
@@ -251,58 +295,79 @@ public partial class ColorProfileDialog : Window
             return;
         }
 
-        if (_editingExtensions.ContainsKey(ext))
-        {
-            ShowStatus(App.Loc.ColorAddExtDuplicate);
-            RefreshExtensionList(ext);
-            return;
-        }
+        bool alreadyKnown = ColorScheme.AllExtensions.Contains(ext, StringComparer.OrdinalIgnoreCase)
+                          || _editingExtensions.ContainsKey(ext);
+        if (!_editingExtensions.ContainsKey(ext))
+            _editingExtensions[ext] = alreadyKnown ? HexOf(ColorScheme.GetBaseColor(ext)) : _profileColorHex;
+        _checkedExtensions.Add(ext);
 
-        // Vorhandene Erweiterung: ihre aktuelle Listenfarbe übernehmen (Startpunkt, änderbar).
-        // Neue, unbekannte Erweiterung: aktuelle Standardfarbe des Profils übernehmen.
-        var startColor = ColorScheme.EffectiveMap.TryGetValue(ext, out var existing)
-            ? existing
-            : CurrentDefaultColor();
-        _editingExtensions[ext] = $"#{startColor.R:X2}{startColor.G:X2}{startColor.B:X2}";
-
+        txtNewExtension.Text = string.Empty;
         HideStatus();
-        RefreshAddCombo();
-        RefreshExtensionList(ext);
-    }
-
-    private void BtnRemoveExtension_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not Button { Tag: string ext }) return;
-
-        _editingExtensions.Remove(ext);
-        if (string.Equals(_selectedRowExt, ext, StringComparison.OrdinalIgnoreCase))
-            _selectedRowExt = null;
-
-        RefreshAddCombo();
-        RefreshExtensionList(null);
-        if (_selectedRowExt == null)
-            SetDefaultColor(CurrentDefaultColor());
-    }
-
-    private void LstProfileExtensions_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (lstProfileExtensions.SelectedItem is ProfileExtItem item)
-        {
-            _selectedRowExt = item.Extension;
-            lblColorTarget.Text = string.Format(App.Loc.ProfileColorTargetExtFmt, item.Extension);
-            SetColor(ParseHex(item.ColorHex));
-        }
-        else
-        {
-            _selectedRowExt = null;
-            lblColorTarget.Text = App.Loc.ProfileColorTargetDefault;
-        }
+        RefreshExtensionList();
     }
 
     private static string NormalizeExtension(string raw)
     {
         var ext = raw.Trim().ToLowerInvariant();
         return ext.StartsWith('.') ? ext : "." + ext;
+    }
+
+    private static string HexOf(Color c) => $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+
+    // ── Farbwähler ───────────────────────────────────────────────────────────
+    private void SetColor(Color c)
+    {
+        colorPreview.Background = new SolidColorBrush(c);
+        _suppressUpdate = true;
+        txtHex.Text = $"{c.R:X2}{c.G:X2}{c.B:X2}";
+        _suppressUpdate = false;
+    }
+
+    private void TxtHex_Changed(object sender, TextChangedEventArgs e)
+    {
+        if (_suppressUpdate || txtHex.Text.Length != 6) return;
+        try
+        {
+            var c = ParseHex("#" + txtHex.Text);
+            colorPreview.Background = new SolidColorBrush(c);
+            ApplyColorToChecked(c);
+        }
+        catch { /* ungueltige Hex-Eingabe waehrend des Tippens ignorieren */ }
+    }
+
+    /// <summary>Weist die übergebene Farbe allen aktuell angehakten Erweiterungen zu.</summary>
+    private void ApplyColorToChecked(Color c)
+    {
+        var hex = HexOf(c);
+        _profileColorHex = hex;
+
+        if (_checkedExtensions.Count == 0)
+        {
+            ShowStatus(App.Loc.ProfileNoneCheckedStatus);
+            return;
+        }
+
+        foreach (var ext in _checkedExtensions)
+            _editingExtensions[ext] = hex;
+
+        HideStatus();
+        RefreshExtensionList();
+    }
+
+    /// <summary>Setzt für alle angehakten Erweiterungen ihre Farbe aus der Grundliste zurück.</summary>
+    private void BtnUseListColor_Click(object sender, RoutedEventArgs e)
+    {
+        if (_checkedExtensions.Count == 0)
+        {
+            ShowStatus(App.Loc.ProfileNoneCheckedStatus);
+            return;
+        }
+
+        foreach (var ext in _checkedExtensions)
+            _editingExtensions[ext] = HexOf(ColorScheme.GetBaseColor(ext));
+
+        HideStatus();
+        RefreshExtensionList();
     }
 
     // ── Speichern / Löschen / Anwenden ──────────────────────────────────────
@@ -315,40 +380,32 @@ public partial class ColorProfileDialog : Window
             return;
         }
 
-        if (_editingExtensions.Count == 0)
+        if (_checkedExtensions.Count == 0)
         {
             ShowStatus(App.Loc.ProfileExtensionsRequired);
             return;
         }
 
-        // Neue, dem globalen Farbschema noch unbekannte Erweiterungen dort ebenfalls anlegen,
-        // damit sie künftig auch außerhalb dieses Profils in der Liste erscheinen.
-        foreach (var kv in _editingExtensions)
-        {
-            if (!ColorScheme.AllExtensions.Contains(kv.Key, StringComparer.OrdinalIgnoreCase))
-                ColorScheme.SetColor(kv.Key, ParseHex(kv.Value));
-        }
+        var extensionColors = _checkedExtensions.ToDictionary(
+            ext => ext, ext => _editingExtensions[ext], StringComparer.OrdinalIgnoreCase);
 
         if (_selected != null)
         {
             _selected.Name = name;
-            _selected.ColorHex = _defaultColorHex;
-            _selected.ExtensionColors = new Dictionary<string, string>(_editingExtensions, StringComparer.OrdinalIgnoreCase);
+            _selected.ColorHex = _profileColorHex;
+            _selected.ExtensionColors = extensionColors;
         }
         else
         {
-            _selected = new ColorProfile
-            {
-                Name = name,
-                ColorHex = _defaultColorHex,
-                ExtensionColors = new Dictionary<string, string>(_editingExtensions, StringComparer.OrdinalIgnoreCase)
-            };
+            _selected = new ColorProfile { Name = name, ColorHex = _profileColorHex, ExtensionColors = extensionColors };
             _profiles.Add(_selected);
         }
 
         ColorProfileStore.Save(_profiles);
-        RefreshList(_selected);
         HideStatus();
+        // RefreshList selektiert das gespeicherte Profil -- LstProfiles_SelectionChanged wendet es
+        // dann exklusiv an, feuert ProfileApplied und zeigt den Status (kein doppeltes Invoke hier).
+        RefreshList(_selected);
     }
 
     private void BtnDelete_Click(object sender, RoutedEventArgs e)
@@ -361,28 +418,40 @@ public partial class ColorProfileDialog : Window
             MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (result != MessageBoxResult.Yes) return;
 
+        bool wasActive = ColorScheme.ActiveProfileName != null
+            && ColorScheme.ActiveProfileName.Equals(_selected.Name, StringComparison.OrdinalIgnoreCase);
+
         _profiles.Remove(_selected);
         ColorProfileStore.Save(_profiles);
-        RefreshList(null);
-        ClearEditor();
+
+        if (wasActive)
+        {
+            // Das gerade aktive Profil wurde geloescht -> zurueck zum Startprofil; die Selektion
+            // des Startprofil-Eintrags erledigt Anwenden/Invoke/Status ueber SelectionChanged.
+            RefreshList(null, selectDefault: true);
+        }
+        else
+        {
+            RefreshList(null);
+            ClearEditor();
+        }
     }
 
     private void BtnApply_Click(object sender, RoutedEventArgs e)
     {
-        if (_editingExtensions.Count == 0)
+        if (_checkedExtensions.Count == 0)
         {
             ShowStatus(App.Loc.ProfileExtensionsRequired);
             return;
         }
 
         var name = string.IsNullOrWhiteSpace(txtName.Text) ? "?" : txtName.Text.Trim();
+        var extensionColors = _checkedExtensions.ToDictionary(
+            ext => ext, ext => _editingExtensions[ext], StringComparer.OrdinalIgnoreCase);
 
-        AppliedProfile = new ColorProfile
-        {
-            Name = name,
-            ColorHex = _defaultColorHex,
-            ExtensionColors = new Dictionary<string, string>(_editingExtensions, StringComparer.OrdinalIgnoreCase)
-        };
+        var profile = new ColorProfile { Name = name, ColorHex = _profileColorHex, ExtensionColors = extensionColors };
+        ColorScheme.ApplyExclusiveProfile(profile.Name, profile.ExtensionColors);
+        ProfileApplied?.Invoke(profile);
         DialogResult = true;
     }
 

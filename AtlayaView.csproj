@@ -14,10 +14,10 @@
     <Platforms>x64</Platforms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Resources\atlaya.ico</ApplicationIcon>
-    <Version>2.0.27</Version>
-    <AssemblyVersion>2.0.27.0</AssemblyVersion>
-    <FileVersion>2.0.27.0</FileVersion>
-    <InformationalVersion>2.0.27</InformationalVersion>
+    <Version>2.0.35</Version>
+    <AssemblyVersion>2.0.35.0</AssemblyVersion>
+    <FileVersion>2.0.35.0</FileVersion>
+    <InformationalVersion>2.0.35</InformationalVersion>
     <!-- Ohne dies haengt MSBuild automatisch "+<git commit hash>" an InformationalVersion an,
          sobald ein .git Ordner erkannt wird. Das wuerde die Kurzversion in der Toolbar/im
          Leerzustand und den Versionsvergleich mit dem Update Feed verfaelschen, da
