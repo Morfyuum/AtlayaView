@@ -43,6 +43,12 @@ public sealed class FileSystemScanner
     // Begrenzte Task-Parallelitaet fuer schnelle SSD-Scans ohne den Thread-Pool zu fluten.
     private static readonly int _parallelDepthLimit = 4;
 
+    // Phase 1 (Zählung): eigene Interlocked-Zähler, da mehrere Tasks gleichzeitig zählen.
+    private long _readDiscoveredDirs;
+    private long _readProcessedDirs;
+    private long _readDiscoveredEntries;
+    private long _readLastProgressMs;
+
     // ── Öffentliche API ──────────────────────────────────────────────────────
     public async Task<FileSystemNode> ScanAsync(string rootPath, CancellationToken ct = default)
     {
@@ -54,104 +60,153 @@ public sealed class FileSystemScanner
         _readEtaSecondsEma = null;
         _processEtaSecondsEma = null;
 
-        // Phase 1: Verzeichnisstruktur zählen (nur Ordnernamen, kein Datei-Stat)
+        // Phase 1: Verzeichnisstruktur zählen (nur Ordnernamen, kein Datei-Stat) – parallel,
+        // damit dieser Vorpass nicht (wie früher) den Großteil der Zeit einzelsträngig läuft
+        // und das Volumen effektiv zweimal einzelsträngig abgelaufen wird.
         PhaseChanged?.Invoke(ScanPhase.Reading);
-        _dirsTotal = await Task.Run(() => CountAllDirs(rootPath, ct), ct);
+        _dirsTotal = await CountAllDirsAsync(rootPath, ct);
 
         // Phase 2: Vollständiger Scan mit Fortschrittsmeldungen
         PhaseChanged?.Invoke(ScanPhase.Processing);
         return await ScanDirectoryAsync(rootPath, null, 0, ct);
     }
 
-    // ── Phase 1: Schnelle Verzeichniszählung ──────────────────────────────────
-    private long CountAllDirs(string root, CancellationToken ct)
+    // ── Phase 1: Schnelle, parallele Verzeichniszählung ───────────────────────
+    private async Task<long> CountAllDirsAsync(string root, CancellationToken ct)
     {
-        long discoveredDirs = 1;
-        long processedDirs = 0;
-        long discoveredEntries = 0;
-        long lastProgressMs = 0;
+        _readDiscoveredDirs = 1;
+        _readProcessedDirs = 0;
+        _readDiscoveredEntries = 0;
+        _readLastProgressMs = 0;
         var scanStarted = DateTime.UtcNow;
-        var pending = new Stack<string>();
-        pending.Push(root);
 
         try
         {
-            var dirOpts = new EnumerationOptions
-            {
-                RecurseSubdirectories = false,
-                IgnoreInaccessible = true,
-                AttributesToSkip = FileAttributes.ReparsePoint   // keine Symlinks/Junctions
-            };
-
-            var fileOpts = new EnumerationOptions
-            {
-                RecurseSubdirectories = false,
-                IgnoreInaccessible = true,
-                AttributesToSkip = FileAttributes.ReparsePoint
-            };
-
-            while (pending.Count > 0)
-            {
-                ct.ThrowIfCancellationRequested();
-                string current = pending.Pop();
-                processedDirs++;
-
-                try
-                {
-                    foreach (var subdir in Directory.EnumerateDirectories(current, "*", dirOpts))
-                    {
-                        ct.ThrowIfCancellationRequested();
-                        pending.Push(subdir);
-                        discoveredDirs++;
-                        discoveredEntries++;
-                    }
-                }
-                catch (OperationCanceledException) { throw; }
-                catch { }
-
-                try
-                {
-                    foreach (var _ in Directory.EnumerateFiles(current, "*", fileOpts))
-                    {
-                        ct.ThrowIfCancellationRequested();
-                        discoveredEntries++;
-                    }
-                }
-                catch (OperationCanceledException) { throw; }
-                catch { }
-
-                long nowMs = Environment.TickCount64;
-                if (nowMs - lastProgressMs >= 120 || pending.Count == 0)
-                {
-                    lastProgressMs = nowMs;
-                    double progress = discoveredDirs > 0
-                        ? Math.Min(99.0, 100.0 * processedDirs / discoveredDirs)
-                        : 0;
-                    double elapsed = (DateTime.UtcNow - scanStarted).TotalSeconds;
-                    string eta = string.Empty;
-
-                    if (processedDirs >= 8 && pending.Count > 0 && elapsed > 1.5)
-                    {
-                        double avgNewDirsPerProcessed = processedDirs > 0
-                            ? Math.Max(0, (discoveredDirs - processedDirs) / (double)processedDirs)
-                            : 0;
-                        double estimatedRemainingDirs = pending.Count * (1.0 + avgNewDirsPerProcessed);
-                        double rawEtaSeconds = processedDirs > 0
-                            ? elapsed / processedDirs * estimatedRemainingDirs
-                            : 0;
-                        double smoothedEta = SmoothEta(rawEtaSeconds, ref _readEtaSecondsEma, 0.18);
-                        eta = FormatEta(smoothedEta);
-                    }
-
-                    ReadProgressChanged?.Invoke(new ReadProgress(discoveredEntries, progress, eta));
-                }
-            }
+            await CountDirAsync(root, 0, ct, scanStarted);
         }
         catch (OperationCanceledException) { throw; }
         catch { /* Zugriff verweigert, Netzwerkfehler o. Ä. */ }
 
-        ReadProgressChanged?.Invoke(new ReadProgress(discoveredEntries, 100, string.Empty));
-        return Math.Max(discoveredDirs, 1);
+        ReadProgressChanged?.Invoke(new ReadProgress(Interlocked.Read(ref _readDiscoveredEntries), 100, string.Empty));
+        return Math.Max(Interlocked.Read(ref _readDiscoveredDirs), 1);
+    }
+
+    private async Task CountDirAsync(string path, int depth, CancellationToken ct, DateTime scanStarted)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var enumOpts = new EnumerationOptions
+        {
+            RecurseSubdirectories = false,
+            IgnoreInaccessible = true,
+            AttributesToSkip = FileAttributes.ReparsePoint   // keine Symlinks/Junctions
+        };
+
+        var subdirs = new List<string>();
+        try
+        {
+            foreach (var subdir in Directory.EnumerateDirectories(path, "*", enumOpts))
+            {
+                ct.ThrowIfCancellationRequested();
+                subdirs.Add(subdir);
+            }
+        }
+        catch (OperationCanceledException) { throw; }
+        catch { }
+
+        long fileCount = 0;
+        try
+        {
+            foreach (var _ in Directory.EnumerateFiles(path, "*", enumOpts))
+            {
+                ct.ThrowIfCancellationRequested();
+                fileCount++;
+            }
+        }
+        catch (OperationCanceledException) { throw; }
+        catch { }
+
+        if (subdirs.Count > 0)
+        {
+            Interlocked.Add(ref _readDiscoveredDirs, subdirs.Count);
+            Interlocked.Add(ref _readDiscoveredEntries, subdirs.Count);
+        }
+        if (fileCount > 0)
+            Interlocked.Add(ref _readDiscoveredEntries, fileCount);
+
+        Interlocked.Increment(ref _readProcessedDirs);
+        ReportReadProgress(scanStarted);
+
+        if (subdirs.Count == 0)
+            return;
+
+        var tasks = new Task[subdirs.Count];
+        for (int i = 0; i < subdirs.Count; i++)
+            tasks[i] = CountSubdirAsync(subdirs[i], depth + 1, ct, scanStarted);
+        await Task.WhenAll(tasks);
+    }
+
+    private Task CountSubdirAsync(string path, int depth, CancellationToken ct, DateTime scanStarted)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (depth <= _parallelDepthLimit && _parallelGate.Wait(0))
+        {
+            return Task.Run(async () =>
+            {
+                try
+                {
+                    await CountDirAsync(path, depth, ct, scanStarted);
+                }
+                catch (OperationCanceledException) { throw; }
+                catch { }
+                finally { _parallelGate.Release(); }
+            }, ct);
+        }
+
+        return CountDirInlineAsync(path, depth, ct, scanStarted);
+    }
+
+    private async Task CountDirInlineAsync(string path, int depth, CancellationToken ct, DateTime scanStarted)
+    {
+        try
+        {
+            await CountDirAsync(path, depth, ct, scanStarted);
+        }
+        catch (OperationCanceledException) { throw; }
+        catch { }
+    }
+
+    private void ReportReadProgress(DateTime scanStarted)
+    {
+        long nowMs = Environment.TickCount64;
+        long prev = Interlocked.Read(ref _readLastProgressMs);
+        if (nowMs - prev < 120) return;
+        if (Interlocked.CompareExchange(ref _readLastProgressMs, nowMs, prev) != prev) return;
+
+        long discoveredDirs = Interlocked.Read(ref _readDiscoveredDirs);
+        long processedDirs = Interlocked.Read(ref _readProcessedDirs);
+        long discoveredEntries = Interlocked.Read(ref _readDiscoveredEntries);
+        long remaining = Math.Max(0, discoveredDirs - processedDirs);
+
+        double progress = discoveredDirs > 0
+            ? Math.Min(99.0, 100.0 * processedDirs / discoveredDirs)
+            : 0;
+        double elapsed = (DateTime.UtcNow - scanStarted).TotalSeconds;
+        string eta = string.Empty;
+
+        if (processedDirs >= 8 && remaining > 0 && elapsed > 1.5)
+        {
+            double avgNewDirsPerProcessed = processedDirs > 0
+                ? Math.Max(0, (discoveredDirs - processedDirs) / (double)processedDirs)
+                : 0;
+            double estimatedRemainingDirs = remaining * (1.0 + avgNewDirsPerProcessed);
+            double rawEtaSeconds = elapsed / processedDirs * estimatedRemainingDirs;
+            double smoothedEta = SmoothEta(rawEtaSeconds, ref _readEtaSecondsEma, 0.18);
+            eta = FormatEta(smoothedEta);
+        }
+
+        ReadProgressChanged?.Invoke(new ReadProgress(discoveredEntries, progress, eta));
     }
 
     // ── Phase 2: Vollständiger Scan ───────────────────────────────────────────

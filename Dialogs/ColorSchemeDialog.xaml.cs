@@ -54,6 +54,7 @@ public partial class ColorSchemeDialog : Window
     public ColorSchemeDialog()
     {
         InitializeComponent();
+        AtlayaView.Core.WindowFrameFix.Apply(this);
         BuildPalette();
         _installedViewers = FileOpenerStore.FindInstalledViewers();
         // Aktuelle Opener-Zuordnungen als Ausgangszustand
@@ -193,13 +194,14 @@ public partial class ColorSchemeDialog : Window
             return;
 
         var profile = dlg.AppliedProfile;
-        Color color;
-        try { color = (Color)System.Windows.Media.ColorConverter.ConvertFromString(profile.ColorHex)!; }
-        catch { color = Palette[4]; }
 
-        foreach (var rawExt in profile.Extensions)
+        foreach (var (rawExt, hex) in profile.ExtensionColors)
         {
             var ext = NormalizeExtension(rawExt);
+            Color color;
+            try { color = (Color)System.Windows.Media.ColorConverter.ConvertFromString(hex)!; }
+            catch { color = Palette[4]; }
+
             bool alreadyExists = ColorScheme.AllExtensions.Contains(ext, StringComparer.OrdinalIgnoreCase)
                                || _pendingNewExtensions.Contains(ext);
             if (!alreadyExists)
@@ -209,7 +211,7 @@ public partial class ColorSchemeDialog : Window
 
         HideAddExtStatus();
         LoadItems(txtSearch.Text.Trim());
-        ShowAddExtStatus(string.Format(App.Loc.ProfileAppliedStatus, profile.Name, profile.Extensions.Count));
+        ShowAddExtStatus(string.Format(App.Loc.ProfileAppliedStatus, profile.Name, profile.ExtensionColors.Count));
     }
 
     // ── Auswahl-Änderung ─────────────────────────────────────────────────────

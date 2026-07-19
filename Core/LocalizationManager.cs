@@ -22,6 +22,9 @@ public sealed class LocalizationManager : INotifyPropertyChanged
     /// <summary>Installierte AtlayaView-Version, für den Vergleich mit dem Update-Feed.</summary>
     public static string CurrentVersion => AppVersion;
 
+    /// <summary>Kurze Versionsanzeige ("v2.0.22") für die Toolbar, sprachunabhängig.</summary>
+    public string HeaderVersionText => $"v{AppVersion}";
+
     /// <summary>Anzeigetext "Version x.y.z" für den Leer-Zustand, sprachabhängig.</summary>
     public string EmptyStateVersion => _language switch
     {
@@ -140,6 +143,7 @@ public sealed class LocalizationManager : INotifyPropertyChanged
     public string StatusProcessingPhase => S("Daten werden verarbeitet …", "Processing data …", "Traitement des données …", "Elaborazione dati …", "Procesando datos …");
     public string StatusDone => S("Fertig", "Done", "Terminé", "Fatto", "Listo");
     public string StatusCancelled => S("Scan abgebrochen", "Scan Cancelled", "Analyse annulée", "Scansione annullata", "Análisis cancelado");
+    public string StatusDriveScanFailedFmt => S("nicht lesbar, abgewählt: {0}", "unreadable, deselected: {0}", "illisible, désélectionné : {0}", "illeggibile, deselezionata: {0}", "ilegible, deseleccionada: {0}");
     public string StatusEtaPrefix => S("noch", "remaining:", "restant :", "restante:", "restante:");
 
     // ── Hover-Popup ──────────────────────────────────────────────────────────
@@ -276,6 +280,33 @@ public sealed class LocalizationManager : INotifyPropertyChanged
                                            "Mostra spazio libero come cuscino",
                                            "Mostrar espacio libre como almohadilla");
 
+    // ── Schnellscan (Options-Dialog) ──────────────────────────────────────────
+    public string OptScanSectionTitle => S("Scan-Geschwindigkeit", "Scan Speed", "Vitesse d'analyse", "Velocità di scansione", "Velocidad de análisis");
+    public string OptFastScan => S("Schneller Scan (benötigt Admin-Rechte)",
+                                   "Fast Scan (requires administrator rights)",
+                                   "Analyse rapide (nécessite des droits administrateur)",
+                                   "Scansione rapida (richiede diritti di amministratore)",
+                                   "Análisis rápido (requiere derechos de administrador)");
+    public string OptFastScanHint => S(
+        "Liest NTFS-Laufwerke direkt über den USN-Änderungsjournal-Mechanismus statt Ordner für Ordner – deutlich schneller, aber nur für ganze Laufwerke und nur mit erhöhten Rechten. Ohne Adminrechte läuft der normale Scan unverändert weiter.",
+        "Reads NTFS drives directly via the USN change journal mechanism instead of folder by folder – much faster, but only for whole drives and only with elevated rights. Without admin rights, the normal scan keeps working unchanged.",
+        "Lit les lecteurs NTFS directement via le journal des modifications USN au lieu de dossier en dossier – bien plus rapide, mais uniquement pour des lecteurs entiers et avec des droits élevés. Sans droits administrateur, l'analyse normale continue de fonctionner sans changement.",
+        "Legge le unità NTFS direttamente tramite il journal delle modifiche USN invece che cartella per cartella – molto più veloce, ma solo per unità intere e solo con diritti elevati. Senza diritti di amministratore la scansione normale continua a funzionare invariata.",
+        "Lee las unidades NTFS directamente mediante el journal de cambios USN en lugar de carpeta por carpeta – mucho más rápido, pero solo para unidades completas y solo con derechos elevados. Sin derechos de administrador, el análisis normal sigue funcionando sin cambios.");
+    public string MsgFastScanElevateTitle => S("Adminrechte erforderlich", "Administrator rights required", "Droits administrateur requis", "Diritti di amministratore richiesti", "Se requieren derechos de administrador");
+    public string MsgFastScanElevateText => S(
+        "Der schnelle Scan braucht erhöhte Rechte, um NTFS-Laufwerke direkt lesen zu können. AtlayaView jetzt mit Administratorrechten neu starten?",
+        "Fast scan needs elevated rights to read NTFS drives directly. Restart AtlayaView as Administrator now?",
+        "L'analyse rapide nécessite des droits élevés pour lire directement les lecteurs NTFS. Redémarrer AtlayaView en tant qu'administrateur maintenant ?",
+        "La scansione rapida richiede diritti elevati per leggere direttamente le unità NTFS. Riavviare ora AtlayaView come amministratore?",
+        "El análisis rápido necesita derechos elevados para leer las unidades NTFS directamente. ¿Reiniciar AtlayaView ahora como administrador?");
+    public string MsgFastScanElevateDenied => S(
+        "Ohne erhöhte Rechte bleibt der schnelle Scan ausgeschaltet, AtlayaView läuft normal weiter.",
+        "Without elevated rights, fast scan stays off – AtlayaView keeps running normally.",
+        "Sans droits élevés, l'analyse rapide reste désactivée – AtlayaView continue de fonctionner normalement.",
+        "Senza diritti elevati, la scansione rapida resta disattivata – AtlayaView continua a funzionare normalmente.",
+        "Sin derechos elevados, el análisis rápido permanece desactivado – AtlayaView sigue funcionando con normalidad.");
+
     // ── Updates (Options-Dialog + Update-Dialog) ──────────────────────────────
     public string OptUpdateSectionTitle => S("Updates", "Updates", "Mises à jour", "Aggiornamenti", "Actualizaciones");
     public string OptUpdateMode => S("Update-Prüfung", "Update check", "Vérification des mises à jour", "Controllo aggiornamenti", "Comprobación de actualizaciones");
@@ -283,6 +314,7 @@ public sealed class LocalizationManager : INotifyPropertyChanged
     public string OptUpdateModeAutoCheck => S("Automatisch prüfen", "Check automatically", "Vérifier automatiquement", "Controlla automaticamente", "Comprobar automáticamente");
     public string OptUpdateModeAutoApply => S("Automatisch prüfen und updaten", "Check and update automatically", "Vérifier et mettre à jour automatiquement", "Controlla e aggiorna automaticamente", "Comprobar y actualizar automáticamente");
     public string OptUpdateInterval => S("Prüfabstand", "Check interval", "Intervalle de vérification", "Intervallo di controllo", "Intervalo de comprobación");
+    public string OptUpdateIntervalStartup => S("Bei jedem Start", "On every start", "À chaque démarrage", "A ogni avvio", "En cada inicio");
     public string OptUpdateIntervalDaily => S("Täglich", "Daily", "Quotidien", "Giornaliero", "Diario");
     public string OptUpdateIntervalWeekly => S("Wöchentlich", "Weekly", "Hebdomadaire", "Settimanale", "Semanal");
     public string OptUpdateIntervalMonthly => S("Monatlich", "Monthly", "Mensuel", "Mensile", "Mensual");
@@ -371,9 +403,11 @@ public sealed class LocalizationManager : INotifyPropertyChanged
     public string ProfileExtCountFmt => S("{0} Erweiterungen", "{0} extensions", "{0} extensions", "{0} estensioni", "{0} extensiones");
     public string ProfileNameLabel => S("Name", "Name", "Nom", "Nome", "Nombre");
     public string ProfileNameHint => S("z. B. Videos", "e.g. Videos", "p. ex. Vidéos", "ad es. Video", "p. ej. Vídeos");
-    public string ProfileExtensionsLabel => S("Erweiterungen (durch Komma getrennt)", "Extensions (comma-separated)", "Extensions (séparées par des virgules)", "Estensioni (separate da virgola)", "Extensiones (separadas por comas)");
-    public string ProfileExtensionsHint => S(".mpg, .avi, .mov, .mp4", ".mpg, .avi, .mov, .mp4", ".mpg, .avi, .mov, .mp4", ".mpg, .avi, .mov, .mp4", ".mpg, .avi, .mov, .mp4");
+    public string ProfileExtensionsLabel => S("Erweiterungen im Profil", "Extensions in profile", "Extensions dans le profil", "Estensioni nel profilo", "Extensiones en el perfil");
+    public string ProfileExtensionsHint => S("Aus der Liste wählen oder neue Erweiterung eingeben und mit „+“ hinzufügen. Jede Erweiterung kann eine eigene Farbe haben.", "Pick from the list or type a new extension and add it with “+”. Each extension can have its own color.", "Choisissez dans la liste ou saisissez une nouvelle extension et ajoutez-la avec « + ». Chaque extension peut avoir sa propre couleur.", "Scegli dall'elenco o digita una nuova estensione e aggiungila con «+». Ogni estensione può avere un colore proprio.", "Elige de la lista o escribe una nueva extensión y añádela con «+». Cada extensión puede tener su propio color.");
     public string ProfileColorLabel => S("Farbe", "Color", "Couleur", "Colore", "Color");
+    public string ProfileColorTargetDefault => S("Standardfarbe für neu hinzugefügte Erweiterungen", "Default color for newly added extensions", "Couleur par défaut pour les nouvelles extensions ajoutées", "Colore predefinito per le estensioni aggiunte di recente", "Color predeterminado para las extensiones recién añadidas");
+    public string ProfileColorTargetExtFmt => S("Farbe für {0}", "Color for {0}", "Couleur pour {0}", "Colore per {0}", "Color para {0}");
     public string ProfileBtnNew => S("Neu", "New", "Nouveau", "Nuovo", "Nuevo");
     public string ProfileBtnSave => S("Speichern", "Save", "Enregistrer", "Salva", "Guardar");
     public string ProfileBtnDelete => S("Löschen", "Delete", "Supprimer", "Elimina", "Eliminar");

@@ -7,5 +7,6 @@ public partial class AboutDialog : Window
     public AboutDialog()
     {
         InitializeComponent();
+        AtlayaView.Core.WindowFrameFix.Apply(this);
     }
 }

@@ -12,6 +12,7 @@ public partial class UpdateDialog : Window
     public UpdateDialog()
     {
         InitializeComponent();
+        WindowFrameFix.Apply(this);
         txtCurrent.Text = $"{App.Loc.UpdateDlgCurrent} {_currentVersion}";
         txtStatus.Text = App.Loc.UpdateDlgChecking;
         Loaded += async (_, _) => await CheckAsync();

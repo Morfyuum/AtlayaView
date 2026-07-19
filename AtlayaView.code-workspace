@@ -3,16 +3,24 @@
     {
       "name": "AtlayaView",
       "path": "."
+    },
+    {
+      "name": "Atlaya",
+      "path": "../Atlaya"
     }
   ],
   "settings": {
     "terminal.integrated.env.windows": {
-      "PATH": "${env:PATH};${env:USERPROFILE}\\.cargo\\bin"
+      "PATH": "${env:PATH};${env:USERPROFILE}\\.cargo\\bin",
+      "PYTHONPATH": "D:\\Atlaya"
     },
     "files.exclude": {
       "**/bin": true,
       "**/obj": true,
-      "**/target": true
+      "**/target": true,
+      "**/__pycache__": true,
+      "**/*.pyc": true,
+      ".venv": false
     },
     "search.exclude": {
       "**/bin": true,
@@ -22,7 +30,7 @@
     "rust-analyzer.check.command": "clippy",
     "rust-analyzer.cargo.features": "all",
     "rust-analyzer.linkedProjects": [
-      "native/atlaya_renderer/Cargo.toml"
+      "AtlayaView/native/atlaya_renderer/Cargo.toml"
     ],
     "rust-analyzer.inlayHints.bindingModeHints.enable": true,
     "rust-analyzer.inlayHints.closingBraceHints.minLines": 10,
@@ -31,7 +39,12 @@
     "rust-analyzer.inlayHints.expressionAdjustmentHints.enable": "reborrow",
     "rust-analyzer.inlayHints.lifetimeElisionHints.enable": "skip_trivial",
     "rust-analyzer.inlayHints.parameterHints.enable": true,
-    "dotnet.defaultSolution": "AtlayaView.sln",
+    "dotnet.defaultSolution": "AtlayaView/AtlayaView.sln",
+    "python.defaultInterpreterPath": "D:\\Atlaya\\.venv\\Scripts\\python.exe",
+    "python.terminal.activateEnvironment": true,
+    "terminal.integrated.defaultProfile.windows": "PowerShell",
+    "editor.formatOnSave": true,
+    "java.configuration.updateBuildConfiguration": "automatic",
     "[rust]": {
       "editor.defaultFormatter": "rust-lang.rust-analyzer",
       "editor.formatOnSave": true,
@@ -67,7 +80,7 @@
           "check"
         ],
         "options": {
-          "cwd": "${workspaceFolder}/native/atlaya_renderer"
+          "cwd": "${workspaceFolder:AtlayaView}/native/atlaya_renderer"
         },
         "problemMatcher": [
           "$rustc"
@@ -86,7 +99,7 @@
           "--all-features"
         ],
         "options": {
-          "cwd": "${workspaceFolder}/native/atlaya_renderer"
+          "cwd": "${workspaceFolder:AtlayaView}/native/atlaya_renderer"
         },
         "problemMatcher": [
           "$rustc"
@@ -101,7 +114,7 @@
           "--release"
         ],
         "options": {
-          "cwd": "${workspaceFolder}/native/atlaya_renderer"
+          "cwd": "${workspaceFolder:AtlayaView}/native/atlaya_renderer"
         },
         "problemMatcher": [
           "$rustc"
@@ -118,12 +131,12 @@
           "-ExecutionPolicy",
           "Bypass",
           "-File",
-          "${workspaceFolder}/build-hybrid.ps1",
+          "${workspaceFolder:AtlayaView}/build-hybrid.ps1",
           "-Configuration",
           "Release"
         ],
         "options": {
-          "cwd": "${workspaceFolder}"
+          "cwd": "${workspaceFolder:AtlayaView}"
         },
         "problemMatcher": [],
         "group": "build"

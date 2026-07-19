@@ -31,6 +31,16 @@ public partial class MainWindow : Window
     // Debounce für Resize
     private System.Threading.Timer? _resizeTimer;
     private const int ResizeDebounceMs = 150;
+
+    // true während _layout.Layout(...) auf einem Hintergrund-Thread node.Bounds im ganzen
+    // Baum neu berechnet -- solange nicht per Hit-Test/Maus-Overlay auf dieselben Bounds
+    // zugreifen (sonst geraten Werte während der Neuberechnung inkonsistent bis hin zu
+    // ±Infinity, was WPF beim Setzen von Rectangle.Width mit einer Exception quittiert).
+    private volatile bool _isRelayouting;
+    // true, wenn während einer laufenden Neuberechnung ein weiterer Render-Wunsch einging
+    // (z. B. weitere Resize-Events) -- wird nach Abschluss der aktuellen Berechnung einmal
+    // nachgeholt, damit die Ansicht am Ende garantiert die tatsächlich aktuelle Größe zeigt.
+    private bool _pendingRelayout;
     private readonly System.Windows.Threading.DispatcherTimer _driveSelectionTimer;
     private int _multiDriveScanGeneration;
 
@@ -47,6 +57,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        Core.WindowFrameFix.Apply(this);
         _vm = new MainViewModel();
         DataContext = _vm;
         _driveSelectionTimer = new System.Windows.Threading.DispatcherTimer
@@ -183,9 +194,37 @@ public partial class MainWindow : Window
             return;
         }
 
-        bool hasContent = _vm.DisplayRoot != null
+        bool hasContent = (_vm.DisplayRoot != null && HasVisibleContent(_vm.DisplayRoot))
                         || (IsMultiDriveMode && _multiDriveRegions.Count > 0);
         emptyStatePanel.Visibility = hasContent ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    // Prüft, ob nach Filter/Kategorie-Auswahl überhaupt noch etwas sichtbar wäre. Ohne diese
+    // Prüfung blieb bisher ein technisch "erfolgreich" gerenderter, aber komplett leerer
+    // Treemap stehen, wenn z. B. im Filter-Dialog alle vorhandenen Erweiterungen ausgeschlossen
+    // oder in der Legende ausschließlich Kategorien gewählt wurden, die auf dem Laufwerk gar
+    // nicht vorkommen -- wirkte wie ein Fehler statt wie ein leeres Ergebnis.
+    private bool HasVisibleContent(FileSystemNode root)
+    {
+        var filter = AppFilter.Instance;
+        if (filter.IsDefault && _activeCategories.Count == 0)
+            return root.Size > 0; // Schnellpfad: kein Filter aktiv -> jede Größe > 0 reicht
+
+        return HasVisibleContentRec(root, filter);
+    }
+
+    private bool HasVisibleContentRec(FileSystemNode node, AppFilter filter)
+    {
+        if (!node.IsDirectory)
+        {
+            if (node.Size <= 0 || !filter.Passes(node)) return false;
+            if (_activeCategories.Count > 0 && !_activeCategories.Contains(ColorScheme.GetCategory(node.Extension)))
+                return false;
+            return true;
+        }
+        foreach (var child in node.Children)
+            if (HasVisibleContentRec(child, filter)) return true;
+        return false;
     }
 
     private void ShowScanUiPending()
@@ -242,6 +281,19 @@ public partial class MainWindow : Window
     // ── Layout + Rendering ────────────────────────────────────────────────────
     private async void DoLayoutAndRender()
     {
+        // Wiedereintritts-Sperre: ImgTreemap_SizeChanged (sofort) und der Resize-Debounce-
+        // Timer (150 ms) können beide DoLayoutAndRender auslösen. Ohne diese Sperre liefen
+        // während eines Resize-Drags mehrere _layout.Layout(...)-Aufrufe GLEICHZEITIG auf
+        // demselben _layout-Objekt und denselben node.Bounds -- ein echter Datenrace, der zu
+        // kaputten (auch negativen/±Infinity) Bounds und "Layout fehlgeschlagen"-Fehlern
+        // führte. Läuft schon eine Berechnung, wird nur vorgemerkt, dass danach noch einmal
+        // (mit der dann aktuellen Fenstergröße) nachgerendert werden soll.
+        if (_isRelayouting)
+        {
+            _pendingRelayout = true;
+            return;
+        }
+
         if (IsMultiDriveMode)
         {
             await DoMultiDriveLayoutAndRender();
@@ -265,6 +317,7 @@ public partial class MainWindow : Window
         int ph = (int)h;
 
         byte[] pixels;
+        _isRelayouting = true;
         try
         {
             bool showFree = _vm.ShowFreeSpaceCushion
@@ -327,6 +380,10 @@ public partial class MainWindow : Window
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
+        finally
+        {
+            FinishRelayout();
+        }
 
         // BitmapSource.Create auf UI-Thread (nach await bereits im richtigen Kontext)
         int stride = pw * 4;
@@ -361,7 +418,7 @@ public partial class MainWindow : Window
     // ── Maus: Hover ───────────────────────────────────────────────────────────
     private void TreemapGrid_MouseMove(object sender, MouseEventArgs e)
     {
-        if (imgTreemap.Source == null) return;
+        if (imgTreemap.Source == null || _isRelayouting) return;
         var pos = e.GetPosition(imgTreemap);
 
         FileSystemNode? node = null;
@@ -408,7 +465,7 @@ public partial class MainWindow : Window
     // ── Maus: Klick ───────────────────────────────────────────────────────────
     private void TreemapGrid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (imgTreemap.Source == null) return;
+        if (imgTreemap.Source == null || _isRelayouting) return;
         var pos = e.GetPosition(imgTreemap);
 
         // Multi-Laufwerk: Klick auf eine Region → Einzelansicht für dieses Laufwerk
@@ -452,7 +509,7 @@ public partial class MainWindow : Window
 
     private void TreemapGrid_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (_vm.DisplayRoot == null) return;
+        if (_vm.DisplayRoot == null || _isRelayouting) return;
 
         var pos = e.GetPosition(imgTreemap);
         var node = CushionRenderer.HitTest(_vm.DisplayRoot, pos.X, pos.Y);
@@ -490,6 +547,18 @@ public partial class MainWindow : Window
     }
 
     // ── Overlay (Hover-Highlight) ─────────────────────────────────────────────
+    private static bool IsFiniteNonNegative(double value) => double.IsFinite(value) && value >= 0;
+
+    private void FinishRelayout()
+    {
+        _isRelayouting = false;
+        if (_pendingRelayout)
+        {
+            _pendingRelayout = false;
+            Dispatcher.InvokeAsync(DoLayoutAndRender);
+        }
+    }
+
     private void UpdateOverlay(FileSystemNode? node)
     {
         overlayCanvas.Children.Clear();
@@ -497,6 +566,14 @@ public partial class MainWindow : Window
 
         // Highlight-Rechteck für den gefundenen Knoten
         var r = node.Bounds;
+        // Bounds können während einer parallel laufenden Neu-Layoutierung (Fensterresize)
+        // kurzzeitig inkonsistent sein (bis hin zu ±Infinity) -- WPF wirft dann beim Setzen
+        // von Width/Height. _isRelayouting deckt das schon ab, diese Prüfung ist die zweite,
+        // günstige Absicherung direkt an der Stelle, die zuvor abgestürzt ist.
+        if (!IsFiniteNonNegative(r.Width) || !IsFiniteNonNegative(r.Height) ||
+            !double.IsFinite(r.X) || !double.IsFinite(r.Y))
+            return;
+
         var rect = new Rectangle
         {
             Width = r.Width,
@@ -709,6 +786,7 @@ public partial class MainWindow : Window
         }
 
         RefreshLegendState();
+        UpdateScanVisualState();
         Dispatcher.InvokeAsync(DoLayoutAndRender);
     }
 
@@ -716,6 +794,7 @@ public partial class MainWindow : Window
     {
         _activeCategories.Clear();
         RefreshLegendState();
+        UpdateScanVisualState();
         Dispatcher.InvokeAsync(DoLayoutAndRender);
     }
 
@@ -724,19 +803,19 @@ public partial class MainWindow : Window
     {
         if (e.Delta > 0)
         {
-            // Rad hoch → eine Ebene hoch
-            _vm.NavigateUpCommand.Execute(null);
-        }
-        else
-        {
-            // Rad runter → frischen Hit-Test an aktueller Mausposition
-            if (_vm.DisplayRoot == null || imgTreemap.Source == null) { e.Handled = true; return; }
+            // Rad von sich weg (vorwärts) → in das Objekt unter dem Cursor hineinzoomen
+            if (_vm.DisplayRoot == null || imgTreemap.Source == null || _isRelayouting) { e.Handled = true; return; }
             var pos = e.GetPosition(imgTreemap);
             var hit = CushionRenderer.HitTest(_vm.DisplayRoot, pos.X, pos.Y);
             // Datei → in den übergeordneten Ordner navigieren; Ordner → direkt rein
             var target = (hit?.IsDirectory == true) ? hit : hit?.Parent;
             if (target != null && target != _vm.DisplayRoot && target.Children.Count > 0)
                 _vm.NavigateInto(target);
+        }
+        else
+        {
+            // Rad zu sich hin (rückwärts) → eine Ebene raus, bis zur Gesamtübersicht
+            _vm.NavigateUpCommand.Execute(null);
         }
         e.Handled = true;
     }
@@ -796,6 +875,7 @@ public partial class MainWindow : Window
 
         long scannedFiles = 0;
         int completed = 0;
+        var failedPaths = new List<string>();
 
         while (pending.Count > 0)
         {
@@ -818,27 +898,50 @@ public partial class MainWindow : Window
                 scannedFiles += CountFiles(result);
                 await DoMultiDriveLayoutAndRender();
             }
-            else
+            else if (ct.IsCancellationRequested)
             {
                 _driveCache.Remove(entry.Key);
+            }
+            else
+            {
+                // Laufwerk konnte nicht gescannt werden (z. B. kein Zugriff mehr, Wechseldatenträger
+                // entfernt). Ohne dies bliebe der Haken gesetzt, obwohl nie wieder etwas angezeigt
+                // werden kann (Bugreport: "Haken bei beiden Laufwerken sichtbar, nur eines zeigt Inhalt").
+                _driveCache.Remove(entry.Key);
+                _selectedDrives.RemoveAll(d => d.Equals(entry.Key, StringComparison.OrdinalIgnoreCase));
+                SyncDriveMenuItems(entry.Key, false);
+                failedPaths.Add(entry.Key);
             }
 
             _vm.UpdateMultiDriveScanProgress(completed, paths.Count, entry.Key, scannedFiles);
         }
 
-        if (paths.Count == 1)
+        if (generation != _multiDriveScanGeneration)
+            return;
+
+        // Nach Abzug fehlgeschlagener Laufwerke bleibt höchstens 1 gültiges übrig -> in den
+        // normalen Einzellaufwerk-Modus wechseln statt eine 1-Spalten-Multi-Ansicht zu zeigen.
+        if (_selectedDrives.Count <= 1)
         {
             ClearDriveLabels();
             _multiDriveRegions.Clear();
-            if (!ct.IsCancellationRequested && _driveCache.TryGetValue(paths[0], out var node) && node != null)
-                _vm.ApplyScanResult(node, paths[0]);
+            if (_selectedDrives.Count == 1 && !ct.IsCancellationRequested
+                && _driveCache.TryGetValue(_selectedDrives[0], out var node) && node != null)
+                _vm.ApplyScanResult(node, _selectedDrives[0]);
 
-            _vm.CompleteMultiDriveScan(ct.IsCancellationRequested ? Loc.StatusCancelled : _vm.StatusText);
+            _vm.CompleteMultiDriveScan(BuildMultiDriveStatusText(ct, failedPaths));
             return;
         }
 
-        _vm.CompleteMultiDriveScan(ct.IsCancellationRequested ? Loc.StatusCancelled : Loc.StatusDone);
+        _vm.CompleteMultiDriveScan(BuildMultiDriveStatusText(ct, failedPaths));
         await DoMultiDriveLayoutAndRender();
+    }
+
+    private string BuildMultiDriveStatusText(CancellationToken ct, List<string> failedPaths)
+    {
+        if (ct.IsCancellationRequested) return Loc.StatusCancelled;
+        if (failedPaths.Count == 0) return Loc.StatusDone;
+        return $"{Loc.StatusDone} – {string.Format(Loc.StatusDriveScanFailedFmt, string.Join(", ", failedPaths))}";
     }
 
     private void MenuShowLegend_Click(object sender, RoutedEventArgs e)
@@ -876,6 +979,7 @@ public partial class MainWindow : Window
         {
             BuildLegend(); // Legende aktualisieren
             RefreshLegendState();
+            UpdateScanVisualState();
             Dispatcher.InvokeAsync(DoLayoutAndRender);
         }
     }
@@ -884,7 +988,10 @@ public partial class MainWindow : Window
     {
         var dlg = new Dialogs.FilterDialog { Owner = this };
         if (dlg.ShowDialog() == true)
+        {
+            UpdateScanVisualState();
             Dispatcher.InvokeAsync(DoLayoutAndRender);
+        }
     }
 
     private void MenuAbout_Click(object sender, RoutedEventArgs e)
@@ -952,7 +1059,9 @@ public partial class MainWindow : Window
     }
     // ── Multi-Laufwerk: Initialisierung ──────────────────────────────────────
     private void Window_Loaded(object sender, RoutedEventArgs e)
-        => PopulateDriveMenuItems();
+    {
+        PopulateDriveMenuItems();
+    }
 
     private void PopulateDriveMenuItems()
     {
@@ -1232,8 +1341,12 @@ public partial class MainWindow : Window
             return di?.AvailableFreeSpace ?? 0L;
         }).ToList();
 
-        byte[] pixels = await Task.Run(() =>
+        _isRelayouting = true;
+        byte[] pixels;
+        try
         {
+            pixels = await Task.Run(() =>
+            {
             int stride = pw * 4;
             var buf = new byte[stride * ph];
             // Hintergrund
@@ -1278,7 +1391,12 @@ public partial class MainWindow : Window
             }
             DrawDriveSeparators(buf, stride, regions);
             return buf;
-        });
+            });
+        }
+        finally
+        {
+            FinishRelayout();
+        }
 
         _freeSpaceNode = null;
         _multiDriveRegions = regions
@@ -1304,18 +1422,16 @@ public partial class MainWindow : Window
 
         if (n <= 4)
         {
-            // Einzeilig – Breiten proportional zur belegten Größe
-            long total = drives.Sum(d => d.Node.Size);
+            // Einzeilig – Breiten proportional zur belegten Größe, mit Mindestbreite pro Spalte
+            // (sonst wird ein winziges Laufwerk neben einem riesigen zu einem wenige Pixel
+            // breiten Streifen, der sich praktisch nicht mehr anklicken lässt -- Bugreport:
+            // "das lange Kissen war nicht aktivierbar").
+            var widths = AllocateWithMinimum(drives.Select(d => d.Node.Size).ToList(), width, n);
             double x = 0;
             for (int i = 0; i < n; i++)
             {
-                double colW = total > 0
-                    ? Math.Round((double)drives[i].Node.Size / total * width)
-                    : Math.Round((double)width / n);
-                if (i == n - 1) colW = width - x; // letzter bekommt Restpixel
-                colW = Math.Max(4, colW);
-                result.Add(new Rect(x, 0, colW, height));
-                x += colW;
+                result.Add(new Rect(x, 0, widths[i], height));
+                x += widths[i];
             }
             return result;
         }
@@ -1335,32 +1451,52 @@ public partial class MainWindow : Window
         double h2 = height - h1;
 
         // Reihe 1
+        var row1Widths = AllocateWithMinimum(drives.Take(row1Count).Select(d => d.Node.Size).ToList(), width, row1Count);
         double x1 = 0;
         for (int i = 0; i < row1Count; i++)
         {
-            double colW = row1Size > 0
-                ? Math.Round((double)drives[i].Node.Size / row1Size * width)
-                : Math.Round((double)width / row1Count);
-            if (i == row1Count - 1) colW = width - x1;
-            colW = Math.Max(4, colW);
-            result.Add(new Rect(x1, 0, colW, h1));
-            x1 += colW;
+            result.Add(new Rect(x1, 0, row1Widths[i], h1));
+            x1 += row1Widths[i];
         }
 
         // Reihe 2
+        var row2Widths = AllocateWithMinimum(drives.Skip(row1Count).Select(d => d.Node.Size).ToList(), width, row2Count);
         double x2 = 0;
         for (int i = row1Count; i < n; i++)
         {
             int idx = i - row1Count;
-            double colW = row2Size > 0
-                ? Math.Round((double)drives[i].Node.Size / row2Size * width)
-                : Math.Round((double)width / row2Count);
-            if (idx == row2Count - 1) colW = width - x2;
-            colW = Math.Max(4, colW);
-            result.Add(new Rect(x2, h1, colW, h2));
-            x2 += colW;
+            result.Add(new Rect(x2, h1, row2Widths[idx], h2));
+            x2 += row2Widths[idx];
         }
 
+        return result;
+    }
+
+    /// <summary>
+    /// Verteilt <paramref name="totalWidth"/> proportional zu <paramref name="sizes"/>, garantiert
+    /// aber jeder Spalte mindestens eine klickbare Mindestbreite (bis zu 60px, weniger nur wenn
+    /// selbst ein Gleichanteil schon darunter liegt) -- sonst verschwindet ein winziges Laufwerk
+    /// neben einem riesigen in einem wenige Pixel breiten, praktisch unklickbaren Streifen.
+    /// </summary>
+    private static List<double> AllocateWithMinimum(List<long> sizes, int totalWidth, int count)
+    {
+        var result = new List<double>(count);
+        if (count == 0) return result;
+
+        double minColWidth = Math.Min(60.0, totalWidth / (double)count);
+        double freeWidth = Math.Max(0, totalWidth - minColWidth * count);
+        long total = sizes.Sum();
+
+        double x = 0;
+        for (int i = 0; i < count; i++)
+        {
+            double share = total > 0 ? (double)sizes[i] / total : 1.0 / count;
+            double colW = i == count - 1
+                ? totalWidth - x // letzter bekommt Restpixel (rundungsfest)
+                : Math.Round(minColWidth + freeWidth * share);
+            result.Add(colW);
+            x += colW;
+        }
         return result;
     }
 

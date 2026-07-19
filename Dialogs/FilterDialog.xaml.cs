@@ -16,6 +16,7 @@ public partial class FilterDialog : Window
     public FilterDialog()
     {
         InitializeComponent();
+        WindowFrameFix.Apply(this);
 
         // Schnellauswahl-Checkboxen registrieren
         _quickChecks = new Dictionary<CheckBox, string>

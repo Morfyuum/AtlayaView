@@ -104,6 +104,16 @@
       <TextBlock Text="Zeigt ungenutzten Platz rechts der Dateien als eigenes Feld"
                  FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="20,2,0,0"/>
 
+      <!-- Schnellscan -->
+      <Separator Margin="0,16,0,14"/>
+      <TextBlock Text="{Binding OptScanSectionTitle, Source={x:Static app:App.Loc}}"
+                 FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" Margin="0,0,0,10"/>
+      <CheckBox x:Name="chkFastScan" Content="{Binding OptFastScan, Source={x:Static app:App.Loc}}"
+                Checked="ChkFastScan_Checked"/>
+      <TextBlock Text="{Binding OptFastScanHint, Source={x:Static app:App.Loc}}"
+                 FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                 TextWrapping="Wrap" Margin="20,2,0,0"/>
+
       <!-- Updates -->
       <Separator Margin="0,16,0,14"/>
       <TextBlock Text="{Binding OptUpdateSectionTitle, Source={x:Static app:App.Loc}}"
@@ -118,6 +128,7 @@
 
       <TextBlock Text="{Binding OptUpdateInterval, Source={x:Static app:App.Loc}}" Margin="0,0,0,4"/>
       <ComboBox x:Name="cmbUpdateInterval">
+        <ComboBoxItem Content="{Binding OptUpdateIntervalStartup, Source={x:Static app:App.Loc}}"/>
         <ComboBoxItem Content="{Binding OptUpdateIntervalDaily, Source={x:Static app:App.Loc}}"/>
         <ComboBoxItem Content="{Binding OptUpdateIntervalWeekly, Source={x:Static app:App.Loc}}"/>
         <ComboBoxItem Content="{Binding OptUpdateIntervalMonthly, Source={x:Static app:App.Loc}}"/>

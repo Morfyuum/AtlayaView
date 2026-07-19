@@ -7,11 +7,11 @@ namespace AtlayaView.Core;
 /// </summary>
 public sealed class FileSystemNode
 {
-    public string Name       { get; init; } = string.Empty;
-    public string FullPath   { get; init; } = string.Empty;
+    public string Name       { get; set; } = string.Empty;
+    public string FullPath   { get; set; } = string.Empty;
     public bool   IsDirectory{ get; init; }
-    public string Extension  { get; init; } = string.Empty;
-    public DateTime LastModified { get; init; }
+    public string Extension  { get; set; } = string.Empty;
+    public DateTime LastModified { get; set; }
 
     /// <summary>Eigengröße (Dateien) bzw. kumulierte Summe aller Kinder (Ordner).</summary>
     public long Size { get; set; }
@@ -32,6 +32,14 @@ public sealed class FileSystemNode
 
     // ── Tiefeninfo ──────────────────────────────────────────────────────────
     public int Depth { get; set; }
+
+    /// <summary>
+    /// NTFS-Datensatznummer (MFT-Referenznummer) des Knotens – nur gesetzt, wenn der Knoten
+    /// aus dem NTFS-Schnellscan (<see cref="NtfsFastScanner"/>) stammt; sonst 0.
+    /// Dient dem Cache/USN-Journal-Abgleich als stabiler Schlüssel (Pfade können sich durch
+    /// Umbenennen ändern, die Referenznummer nicht).
+    /// </summary>
+    public ulong FileReferenceNumber { get; set; }
 
     public override string ToString() => $"{(IsDirectory ? "[D]" : "[F]")} {Name} ({FormatSize(Size)})";
 

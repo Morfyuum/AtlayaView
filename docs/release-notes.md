@@ -1,5 +1,260 @@
 # AtlayaView Release Notes
 
+## 2.0.27 - 2026-07-19
+
+- Bugfix: In der Multi-Laufwerk-Ansicht bekam ein deutlich kleineres Laufwerk neben einem
+  großen nur eine 4px breite Spalte (`CalculateDriveRegions`s alter `Math.Max(4, ...)`-Klammer)
+  – praktisch nicht mehr anklickbar (Bugreport: "das lange Kissen ganz rechts war nicht
+  aktivierbar"). `AllocateWithMinimum` reserviert jetzt für jede Laufwerksspalte zuerst eine
+  klickbare Mindestbreite (bis zu 60px) und verteilt erst danach den restlichen Platz
+  proportional zur belegten Größe – verifiziert mit einem Testfall im Verhältnis 6 Mrd. : 1
+  (60px statt 4px für das kleine Laufwerk, weiterhin korrekt sichtbar gerendert).
+- Bugfix: Beim Wechsel von einer Einzellaufwerk-Ansicht (mit Navigationspfad, z. B. "G:\ >") in
+  die Multi-Laufwerk-Ansicht blieb der alte Navigations-Breadcrumb stehen, obwohl er dort nicht
+  mehr zur Navigation gehörte – wird beim Start eines Multi-Laufwerk-Scans jetzt mit geleert.
+- Release-Version auf 2.0.27 angehoben in .NET-Projekt und Rust-Renderer.
+
+## Artefakte
+
+- EXE: `dist/publish/AtlayaView-2.0.27-win-x64/AtlayaView.exe` (mit .NET, self-contained)
+- EXE: `dist/publish/AtlayaView-2.0.27-win-x64-fx/AtlayaView.exe` (ohne .NET, framework-dependent)
+- ZIP: `dist/AtlayaView-2.0.27-win-x64.zip`, `dist/AtlayaView-2.0.27-win-x64-fx.zip`
+- Native DLL: `dist/publish/AtlayaView-2.0.27-win-x64/atlaya_renderer.dll`
+
+## 2.0.26 - 2026-07-19
+
+- Bugfix (Nachbesserung zu 2.0.23): Der bisherige Fix für das WPF/PerMonitorV2-Problem
+  „Titelleiste auf einem sekundären Monitor mit abweichender DPI-Skalierung erst nach
+  manuellem Ziehen am Fensterrand verschiebbar" hat live nicht funktioniert – von Chris
+  bestätigt (Fenster startete unten auf dem sekundären Monitor, ließ sich nicht nach oben auf
+  den anderen Monitor verschieben, bis der weiße Rand am rechten Fensterrand angefasst wurde).
+  Ursache der Nachbesserung: `SetWindowPos` mit `SWP_FRAMECHANGED` allein (nur Neuzeichnen des
+  Fensterrahmens, keine echte Größenänderung) reicht nicht aus, um WPFs intern zwischengespeicherten
+  DPI-Transform (`HwndTarget`) für den aktuellen Monitor neu zu berechnen – nur ein echter
+  `WM_SIZE`-Zyklus tut das, exakt das, was manuelles Ziehen am Rand auslöst. Neuer, gemeinsamer
+  Fix (`Core/WindowFrameFix.cs`) simuliert das automatisiert: 1 Pixel breiter, sofort wieder
+  zurück, unsichtbar für den Nutzer. Jetzt auf das Hauptfenster UND alle Dialogfenster
+  (Einstellungen, Farbschema, Farbprofile, Filter, Update, Über AtlayaView) angewendet, da alle
+  denselben zugrunde liegenden WPF-Bug teilen können.
+- Release-Version auf 2.0.26 angehoben in .NET-Projekt und Rust-Renderer.
+
+## Artefakte
+
+- EXE: `dist/publish/AtlayaView-2.0.26-win-x64/AtlayaView.exe` (mit .NET, self-contained)
+- EXE: `dist/publish/AtlayaView-2.0.26-win-x64-fx/AtlayaView.exe` (ohne .NET, framework-dependent)
+- ZIP: `dist/AtlayaView-2.0.26-win-x64.zip`, `dist/AtlayaView-2.0.26-win-x64-fx.zip`
+- Native DLL: `dist/publish/AtlayaView-2.0.26-win-x64/atlaya_renderer.dll`
+
+## 2.0.25 - 2026-07-19
+
+- Bugfix: Bei Auswahl von genau 2 Laufwerken (z. B. E: und G:) blieben beide Häkchen gesetzt,
+  aber es wurde nur der Inhalt eines Laufwerks angezeigt. Ursache: Schlug der Hintergrundscan
+  für eines der ausgewählten Laufwerke fehl (z. B. kein Zugriff mehr, Wechseldatenträger
+  entfernt, Netzlaufwerk getrennt), wurde `FileSystemScanner.ScanAsync` intern zwar sauber
+  abgefangen (kein Absturz), das betroffene Laufwerk aber nur still aus dem Render-Cache
+  entfernt – die Checkbox blieb angehakt, obwohl für dieses Laufwerk nie wieder etwas gezeichnet
+  werden konnte. `RefreshMultiDriveAsync` wählt ein fehlgeschlagenes Laufwerk jetzt automatisch
+  ab (Haken verschwindet) und meldet es in der Statuszeile („nicht lesbar, abgewählt: …“), statt
+  einen inkonsistenten Auswahlzustand stehen zu lassen. Bleibt nach dem Abwählen nur noch ein
+  gültiges Laufwerk übrig, wechselt die Ansicht automatisch zurück in den normalen
+  Einzellaufwerk-Modus. Kernrendering (Regionsaufteilung + Cushion-Treemap-Layout) selbst wurde
+  mit zwei real unterschiedlich großen Testordnern (Verhältnis 30:1) verifiziert und zeigt beide
+  Bereiche korrekt an – das eigentliche Problem lag im stillen Scan-Fehlerpfad, nicht im
+  Zeichnen.
+- Release-Version auf 2.0.25 angehoben in .NET-Projekt und Rust-Renderer.
+
+## Artefakte
+
+- EXE: `dist/publish/AtlayaView-2.0.25-win-x64/AtlayaView.exe` (mit .NET, self-contained)
+- EXE: `dist/publish/AtlayaView-2.0.25-win-x64-fx/AtlayaView.exe` (ohne .NET, framework-dependent)
+- ZIP: `dist/AtlayaView-2.0.25-win-x64.zip`, `dist/AtlayaView-2.0.25-win-x64-fx.zip`
+- Native DLL: `dist/publish/AtlayaView-2.0.25-win-x64/atlaya_renderer.dll`
+
+## 2.0.24 - 2026-07-19
+
+- Neu: Farbprofile (Dialog „🎨 Farbprofile …") unterstützen jetzt Pro-Erweiterung-Farben
+  statt einer einzigen gemeinsamen Farbe für alle Erweiterungen im Profil. Beim Bearbeiten
+  eines Profils lassen sich Erweiterungen aus der vorhandenen Farbschema-Liste auswählen
+  oder neu eingeben (werden dann beim Speichern auch dauerhaft in die globale Liste
+  übernommen), und jede Erweiterung im Profil kann eine eigene, vom Listen-Standard
+  abweichende Farbe bekommen. Alte, vor 2.0.24 gespeicherte Profile (eine Farbe für alle
+  Erweiterungen) werden beim ersten Laden automatisch und ohne sichtbaren Unterschied in
+  das neue Format migriert.
+- Neu: die kurze Versionsnummer (z. B. „v2.0.24") steht jetzt fett, ganz rechts in der
+  Menüzeile neben „Hilfe" statt in der Werkzeugleiste.
+- Bugfix: Wählt man alle Laufwerke/Filter ab, wurde bisher weiterhin die zuletzt gerenderte
+  (aber inhaltsleere) Ansicht angezeigt statt des Startbildschirms. `HasVisibleContent`
+  prüft jetzt nach jeder Filter-/Kategorie-Änderung, ob nach Anwendung von `AppFilter` und
+  aktiven Legenden-Kategorien überhaupt noch etwas sichtbar bleibt, und blendet sonst den
+  Startbildschirm ein.
+- Bugfix: Die Versionsanzeige (Programmfenster, Startbildschirm, Webseite) zeigte teils den
+  vollen Git-Commit-Hash an (z. B. „v2.0.23+f880120724fa2…") statt der kurzen Version. Ursache:
+  MSBuilds `IncludeSourceRevisionInInformationalVersion` hängt standardmäßig automatisch den
+  Hash an `InformationalVersion` an, sobald ein `.git`-Ordner erkannt wird. Jetzt im .csproj
+  explizit deaktiviert. Die Webseite war nicht betroffen, da sie die Version separat aus
+  `<Version>` bzw. dem Update-Feed liest.
+- Release-Version auf 2.0.24 angehoben in .NET-Projekt und Rust-Renderer.
+
+## Artefakte
+
+- EXE: `dist/publish/AtlayaView-2.0.24-win-x64/AtlayaView.exe` (mit .NET, self-contained)
+- EXE: `dist/publish/AtlayaView-2.0.24-win-x64-fx/AtlayaView.exe` (ohne .NET, framework-dependent)
+- ZIP: `dist/AtlayaView-2.0.24-win-x64.zip`, `dist/AtlayaView-2.0.24-win-x64-fx.zip`
+- Native DLL: `dist/publish/AtlayaView-2.0.24-win-x64/atlaya_renderer.dll`
+
+## 2.0.23 - 2026-07-19
+
+- Neu: kurze Versionsnummer (z. B. „v2.0.23") wird jetzt dauerhaft oben rechts in der
+  Toolbar angezeigt (`LocalizationManager.HeaderVersionText`), nicht mehr nur im Leer-Zustand.
+- Bugfix: Startet AtlayaView auf einem nicht-primären Monitor (v. a. mit abweichender
+  DPI-Skalierung zum Hauptbildschirm), blieb die Titelleiste zunächst nicht interaktiv – das
+  Fenster ließ sich erst auf einen anderen Bildschirm verschieben, nachdem man einmal am Rand
+  gezogen hatte. Bekannter WPF/PerMonitorV2-Effekt (vgl. `dotnet/wpf#6103`): der
+  Fensterrahmen wird auf einem sekundären Monitor beim ersten Anzeigen nicht korrekt
+  neu berechnet. Fix: `Window_Loaded` stößt jetzt automatisch über `SetWindowPos` mit
+  `SWP_FRAMECHANGED` genau die Neuberechnung an, die bisher nur das manuelle Ziehen am
+  Fensterrand auslöste – ohne Position oder Größe sichtbar zu verändern.
+- Release-Version auf 2.0.23 angehoben in .NET-Projekt und Rust-Renderer.
+
+## Artefakte
+
+- EXE: `dist/publish/AtlayaView-2.0.23-win-x64/AtlayaView.exe` (mit .NET, self-contained)
+- EXE: `dist/publish/AtlayaView-2.0.23-win-x64-fx/AtlayaView.exe` (ohne .NET, framework-dependent)
+- ZIP: `dist/AtlayaView-2.0.23-win-x64.zip`, `dist/AtlayaView-2.0.23-win-x64-fx.zip`
+- Native DLL: `dist/publish/AtlayaView-2.0.23-win-x64/atlaya_renderer.dll`
+
+## 2.0.22 - 2026-07-19
+
+- Wichtiger Bugfix: Der Resize-Fix aus 2.0.20 hat die eigentliche Ursache nicht vollständig
+  behoben – `ImgTreemap_SizeChanged` löste `DoLayoutAndRender()` weiterhin sofort und
+  ungebremst aus, parallel zum bereits vorhandenen 150-ms-Debounce-Timer
+  (`OnRenderSizeChanged`). Bei schnellem Ziehen am Fensterrand liefen dadurch mehrere
+  `_layout.Layout(...)`-Aufrufe GLEICHZEITIG auf demselben `_layout`-Objekt und denselben
+  `node.Bounds` – ein Datenrace, der zu „Layout fehlgeschlagen"-Fehlerdialogen führte (teils
+  mehrfach gestapelt, da jeder überlappende Aufruf seinen eigenen Dialog zeigte). Fix: echte
+  Wiedereintritts-Sperre (`_isRelayouting`/`_pendingRelayout`) – läuft bereits eine
+  Neuberechnung, wird ein weiterer Render-Wunsch nur vorgemerkt und nach Abschluss der
+  aktuellen Berechnung einmal mit der dann aktuellen Fenstergröße nachgeholt, statt parallel
+  zu rechnen. Mit 200 sehr schnellen, automatisierten Resize-Schritten auf einer bereits
+  gerenderten Ansicht verifiziert (vorher reproduzierbar, jetzt nicht mehr).
+- Release-Version auf 2.0.22 angehoben in .NET-Projekt und Rust-Renderer.
+
+## Artefakte
+
+- EXE: `dist/publish/AtlayaView-2.0.22-win-x64/AtlayaView.exe` (mit .NET, self-contained)
+- EXE: `dist/publish/AtlayaView-2.0.22-win-x64-fx/AtlayaView.exe` (ohne .NET, framework-dependent)
+- ZIP: `dist/AtlayaView-2.0.22-win-x64.zip`, `dist/AtlayaView-2.0.22-win-x64-fx.zip`
+- Native DLL: `dist/publish/AtlayaView-2.0.22-win-x64/atlaya_renderer.dll`
+
+## 2.0.21 - 2026-07-19
+
+- Neu: Prüfabstand für automatische Updates um „Bei jedem Start" erweitert (Einstellungen →
+  Updates → Prüfabstand), zusätzlich zu Täglich/Wöchentlich/Monatlich/Jährlich. Nur wirksam,
+  wenn „Automatisch prüfen" oder „Automatisch prüfen und updaten" aktiv ist.
+  `Core/UpdateScheduler.cs`: neuer Intervall-Wert `"startup"`, fällig einmal pro
+  Programmstart (Vergleich `last-check` gegen den Zeitpunkt des Prozessstarts statt gegen ein
+  Tage-Intervall). Beim Implementieren einen echten .NET-Stolperstein gefunden und per
+  eigenem Test aufgedeckt: ohne expliziten statischen Konstruktor darf der Compiler
+  („beforefieldinit") das Referenz-Zeitfeld verzögert erst beim ersten tatsächlichen
+  Lesezugriff initialisieren – durch eine Short-Circuit-Auswertung passierte dieser erste
+  Zugriff hier immer erst beim ZWEITEN Aufruf, mit „jetzt" statt dem echten Prozessstart, was
+  „Bei jedem Start" wirkungslos gemacht hätte. Fix: expliziter (leerer) statischer
+  Konstruktor erzwingt die Initialisierung vor dem ersten Aufruf.
+- Release-Version auf 2.0.21 angehoben in .NET-Projekt und Rust-Renderer.
+
+## Artefakte
+
+- EXE: `dist/publish/AtlayaView-2.0.21-win-x64/AtlayaView.exe` (mit .NET, self-contained)
+- EXE: `dist/publish/AtlayaView-2.0.21-win-x64-fx/AtlayaView.exe` (ohne .NET, framework-dependent)
+- ZIP: `dist/AtlayaView-2.0.21-win-x64.zip`, `dist/AtlayaView-2.0.21-win-x64-fx.zip`
+- Native DLL: `dist/publish/AtlayaView-2.0.21-win-x64/atlaya_renderer.dll`
+
+## 2.0.20 - 2026-07-19
+
+- Wichtiger Bugfix: Absturz „'-∞' ist kein gültiger Wert für die Eigenschaft 'Width'" beim
+  Ändern der Fenstergröße, während die Maus über dem Treemap steht (oder ein Scan läuft).
+  Ursache: `DoLayoutAndRender`/`DoMultiDriveLayoutAndRender` berechnen `node.Bounds` im
+  gesamten Baum auf einem Hintergrund-Thread (`_layout.Layout(...)` in `Task.Run`) – wenn in
+  genau diesem Moment eine Mausbewegung `TreemapGrid_MouseMove` → `UpdateOverlay` auslöste,
+  las das den UI-Thread dieselben `Bounds`-Objekte mitten in der Neuberechnung, teils mit
+  inkonsistenten Zwischenwerten bis hin zu ±Infinity. Fix: neues `_isRelayouting`-Flag sperrt
+  alle Hit-Test-Aufrufe (Maus-Move/-Klick/-Rechtsklick/-Rad) für die Dauer der
+  Hintergrund-Neuberechnung, zusätzlich prüft `UpdateOverlay` die Bounds jetzt explizit auf
+  endliche, nicht-negative Werte, bevor sie an WPF übergeben werden.
+- Bugfix: Das „Scan läuft …"-Fenster wuchs und schrumpfte abhängig von der Länge des gerade
+  gescannten Pfads. Card hat jetzt eine feste Breite/Höhe; lange Pfade werden zweizeilig
+  umgebrochen (mit Auslassungspunkten, falls auch das nicht reicht) statt die Box zu dehnen.
+- Release-Version auf 2.0.20 angehoben in .NET-Projekt und Rust-Renderer.
+
+## Artefakte
+
+- EXE: `dist/publish/AtlayaView-2.0.20-win-x64/AtlayaView.exe` (mit .NET, self-contained)
+- EXE: `dist/publish/AtlayaView-2.0.20-win-x64-fx/AtlayaView.exe` (ohne .NET, framework-dependent)
+- ZIP: `dist/AtlayaView-2.0.20-win-x64.zip`, `dist/AtlayaView-2.0.20-win-x64-fx.zip`
+- Native DLL: `dist/publish/AtlayaView-2.0.20-win-x64/atlaya_renderer.dll`
+
+## 2.0.19 - 2026-07-19
+
+- Neu (Opt-in, standardmäßig AUS): „Schneller Scan" unter Einstellungen → Scan-Geschwindigkeit.
+  Liest NTFS-Laufwerke über den USN-Änderungsjournal-Mechanismus (`FSCTL_ENUM_USN_DATA` für
+  den ersten Scan – ein sequenzieller Durchlauf durchs ganze Volume statt N einzelner
+  Verzeichnis-Abfragen; `FSCTL_QUERY_USN_JOURNAL`/`FSCTL_READ_USN_JOURNAL` für spätere
+  erneute Scans desselben Laufwerks – dabei werden nur die tatsächlich geänderten Ordner neu
+  aufgelistet, nicht das ganze Laufwerk). Braucht erhöhte Rechte (Windows verlangt das für
+  jeden Volume-Handle-Zugriff, unabhängig vom Zweck); die Einstellung bietet dafür einen
+  Neustart mit `Verb=runas` an. Ohne Adminrechte oder für Scans in einen bestimmten
+  Unterordner hinein (das Verfahren arbeitet immer volumenweit) läuft unverändert der normale
+  Scanner. **Wichtiger Hinweis zum Rollout:** Der eigentliche NTFS-Volume-Zugriff (neue Datei
+  `Core/NtfsFastScanner.cs`) konnte in dieser Entwicklungsumgebung mangels Administratorrechten
+  nicht live gegen einen echten elevated-Handle getestet werden – nur die Sicherheitsschranken
+  (Fallback bei fehlenden Rechten, bei Unterordner-Scans, bei jedem Fehler) wurden verifiziert.
+  Bitte den Schnellscan nach der Installation einmal bewusst ausprobieren und Auffälligkeiten
+  (falsche Größen, fehlende Dateien) melden, bevor er als zuverlässig gilt.
+- Release-Version auf 2.0.19 angehoben in .NET-Projekt und Rust-Renderer.
+
+## Artefakte
+
+- EXE: `dist/publish/AtlayaView-2.0.19-win-x64/AtlayaView.exe` (mit .NET, self-contained)
+- EXE: `dist/publish/AtlayaView-2.0.19-win-x64-fx/AtlayaView.exe` (ohne .NET, framework-dependent)
+- ZIP: `dist/AtlayaView-2.0.19-win-x64.zip`, `dist/AtlayaView-2.0.19-win-x64-fx.zip`
+- Native DLL: `dist/publish/AtlayaView-2.0.19-win-x64/atlaya_renderer.dll`
+
+## 2.0.18 - 2026-07-19
+
+- Performance: Der Scan-Vorlauf („Dateien und Ordner werden eingelesen …", Phase 1 – zählt
+  die Verzeichnisstruktur für die Fortschrittsanzeige vor) lief bisher komplett
+  einzelsträngig, obwohl der eigentliche Scan direkt danach (Phase 2) längst parallelisiert
+  war – dadurch wurde das Laufwerk effektiv einmal einzelsträngig und einmal parallel
+  abgelaufen. Phase 1 nutzt jetzt denselben parallelen Task-Ansatz (gleiche Tiefenbegrenzung,
+  gleiches Parallelitäts-Limit) wie Phase 2. Größter Effekt auf SSD/NVMe; auf klassischen
+  Festplatten begrenzt die Kopfmechanik weiterhin, wie viel parallele I/O tatsächlich bringt.
+  Erster Schritt einer mehrteiligen Scan-Geschwindigkeits-Initiative (Cache mit
+  Änderungs-Nachverfolgung und optionaler Admin-Schnellscan folgen in künftigen Versionen).
+- Release-Version auf 2.0.18 angehoben in .NET-Projekt und Rust-Renderer.
+
+## Artefakte
+
+- EXE: `dist/publish/AtlayaView-2.0.18-win-x64/AtlayaView.exe` (mit .NET, self-contained)
+- EXE: `dist/publish/AtlayaView-2.0.18-win-x64-fx/AtlayaView.exe` (ohne .NET, framework-dependent)
+- ZIP: `dist/AtlayaView-2.0.18-win-x64.zip`, `dist/AtlayaView-2.0.18-win-x64-fx.zip`
+- Native DLL: `dist/publish/AtlayaView-2.0.18-win-x64/atlaya_renderer.dll`
+
+## 2.0.17 - 2026-07-19
+
+- Bugfix: Zoomrichtung des Mausrads im Treemap war invertiert – Rad von sich weg drehen
+  zoomte aus der Ansicht heraus statt hinein, Rad zu sich hin drehen zoomte hinein statt
+  heraus. Jetzt zoomt „Rad von sich weg" in das Objekt unter dem Mauszeiger hinein (bei
+  fortgesetztem Drehen immer eine Ebene tiefer), „Rad zu sich hin" zoomt schrittweise wieder
+  heraus bis zur Gesamtübersicht.
+- Release-Version auf 2.0.17 angehoben in .NET-Projekt und Rust-Renderer.
+
+## Artefakte
+
+- EXE: `dist/publish/AtlayaView-2.0.17-win-x64/AtlayaView.exe` (mit .NET, self-contained)
+- EXE: `dist/publish/AtlayaView-2.0.17-win-x64-fx/AtlayaView.exe` (ohne .NET, framework-dependent)
+- ZIP: `dist/AtlayaView-2.0.17-win-x64.zip`, `dist/AtlayaView-2.0.17-win-x64-fx.zip`
+- Native DLL: `dist/publish/AtlayaView-2.0.17-win-x64/atlaya_renderer.dll`
+
 ## 2.0.16 - 2026-07-18
 
 - Öffentlicher Release-Kanal auf GitHub umgestellt: Das Repository ist jetzt öffentlich, die Download-ZIPs liegen als GitHub Releases vor, und die AtlayaView-Webseite verweist für die aktuelle Version direkt auf diese Release-Artefakte.

@@ -24,6 +24,17 @@ public sealed class UpdateScheduler : IDisposable
         ["yearly"] = 365,
     };
 
+    /// <summary>Zeitpunkt, ab dem dieser Prozess läuft – Referenz für "bei jedem Start".</summary>
+    private static readonly DateTime ProcessStartUtc = DateTime.UtcNow;
+
+    // Erzwingt eine explizite statische Konstruktion (keine "beforefieldinit"-Optimierung):
+    // ohne diesen expliziten Static Constructor darf der Compiler ProcessStartUtc bis zum
+    // erst tatsächlichen Lesezugriff verzögern -- und weil IsDue() bei "last is null" per
+    // Short-Circuit nie bis zum Vergleich mit ProcessStartUtc kommt, würde das Feld sonst
+    // erst bei einem SPÄTEREN Aufruf initialisiert (mit "jetzt" statt echtem Prozessstart),
+    // was die "bei jedem Start"-Logik unbrauchbar macht.
+    static UpdateScheduler() { }
+
     private static string StatePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "AtlayaView", "update_check_state.json");
@@ -58,9 +69,18 @@ public sealed class UpdateScheduler : IDisposable
     {
         string mode = UpdatePreferences.Instance.CheckMode;
         if (mode == "manual") return false;
+
         var last = ReadLastCheck();
+        string interval = UpdatePreferences.Instance.CheckInterval;
+
+        if (interval == "startup")
+            // Einmal pro Programmstart fällig: kein Check seit ProcessStartUtc mehr nötig,
+            // sobald einer stattgefunden hat -- beim nächsten Start ist last dann wieder
+            // zwangsläufig älter als der neue ProcessStartUtc.
+            return last is null || last.Value < ProcessStartUtc;
+
         if (last is null) return true;
-        int days = IntervalDays.GetValueOrDefault(UpdatePreferences.Instance.CheckInterval, 7);
+        int days = IntervalDays.GetValueOrDefault(interval, 7);
         return DateTime.UtcNow >= last.Value.AddDays(days);
     }
 

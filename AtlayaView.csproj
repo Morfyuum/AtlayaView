@@ -14,10 +14,15 @@
     <Platforms>x64</Platforms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Resources\atlaya.ico</ApplicationIcon>
-    <Version>2.0.16</Version>
-    <AssemblyVersion>2.0.16.0</AssemblyVersion>
-    <FileVersion>2.0.16.0</FileVersion>
-    <InformationalVersion>2.0.16</InformationalVersion>
+    <Version>2.0.27</Version>
+    <AssemblyVersion>2.0.27.0</AssemblyVersion>
+    <FileVersion>2.0.27.0</FileVersion>
+    <InformationalVersion>2.0.27</InformationalVersion>
+    <!-- Ohne dies haengt MSBuild automatisch "+<git commit hash>" an InformationalVersion an,
+         sobald ein .git Ordner erkannt wird. Das wuerde die Kurzversion in der Toolbar/im
+         Leerzustand und den Versionsvergleich mit dem Update Feed verfaelschen, da
+         Core.LocalizationManager.CurrentVersion genau dieses Feld liest. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildProjectDirectory)\obj\**;$(MSBuildProjectDirectory)\bin\**;$(MSBuildProjectDirectory)\dist\publish\**;$(MSBuildProjectDirectory)\.artifacts\**</DefaultItemExcludes>
     <Company>AtlayaView</Company>
     <Product>AtlayaView – Fast Disk Visualizer</Product>

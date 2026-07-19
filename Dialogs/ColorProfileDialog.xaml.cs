@@ -13,6 +13,14 @@ public sealed class ProfileListItem
     public string CountText { get; init; } = string.Empty;
 }
 
+/// <summary>Listeneintrag für eine Erweiterung innerhalb des gerade bearbeiteten Profils.</summary>
+public sealed class ProfileExtItem
+{
+    public string Extension { get; init; } = string.Empty;
+    public string ColorHex { get; init; } = "#647882";
+    public SolidColorBrush Brush { get; init; } = new(Colors.Gray);
+}
+
 public partial class ColorProfileDialog : Window
 {
     private static readonly Color[] Palette =
@@ -30,12 +38,24 @@ public partial class ColorProfileDialog : Window
     private ColorProfile? _selected;
     private bool _suppressUpdate;
 
+    // Arbeitskopie der Erweiterungen des gerade bearbeiteten Profils (Erweiterung → Hex-Farbe),
+    // unabhängig vom gespeicherten Profil bis "Speichern" bzw. "Auf Liste anwenden" geklickt wird.
+    private readonly Dictionary<string, string> _editingExtensions =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    // Standardfarbe des Profils (Muster in der Profilliste + Startfarbe für neue Erweiterungen).
+    private string _defaultColorHex = "#647882";
+
+    // Wenn gesetzt: der Farbwähler bearbeitet die Farbe dieser Erweiterung statt der Profil-Standardfarbe.
+    private string? _selectedRowExt;
+
     /// <summary>Wird gesetzt, wenn der Nutzer "Auf Liste anwenden" geklickt hat.</summary>
     public ColorProfile? AppliedProfile { get; private set; }
 
     public ColorProfileDialog()
     {
         InitializeComponent();
+        AtlayaView.Core.WindowFrameFix.Apply(this);
         BuildPalette();
         _profiles = ColorProfileStore.Load();
         RefreshList(null);
@@ -55,19 +75,19 @@ public partial class ColorProfileDialog : Window
                 Tag = c,
                 Style = (Style)FindResource("ToolButtonStyle")
             };
-            btn.Click += (_, _) => { if (btn.Tag is Color pc) SetColor(pc); };
+            btn.Click += (_, _) => { if (btn.Tag is Color pc) { SetColor(pc); ApplyColorToTarget(pc); } };
             palettePanel.Children.Add(btn);
         }
     }
 
-    // ── Liste ────────────────────────────────────────────────────────────────
+    // ── Profilliste ──────────────────────────────────────────────────────────
     private void RefreshList(ColorProfile? selectAfter)
     {
         var items = _profiles.Select(p => new ProfileListItem
         {
             Profile = p,
             Brush = new SolidColorBrush(ParseHex(p.ColorHex)),
-            CountText = string.Format(App.Loc.ProfileExtCountFmt, p.Extensions.Count)
+            CountText = string.Format(App.Loc.ProfileExtCountFmt, p.ExtensionColors.Count)
         }).ToList();
 
         lstProfiles.ItemsSource = items;
@@ -94,10 +114,16 @@ public partial class ColorProfileDialog : Window
 
         _suppressUpdate = true;
         txtName.Text = item.Profile.Name;
-        txtExtensions.Text = string.Join(", ", item.Profile.Extensions);
         _suppressUpdate = false;
 
-        SetColor(ParseHex(item.Profile.ColorHex));
+        _editingExtensions.Clear();
+        foreach (var kv in item.Profile.ExtensionColors)
+            _editingExtensions[kv.Key] = kv.Value;
+
+        _selectedRowExt = null;
+        RefreshAddCombo();
+        RefreshExtensionList(null);
+        SetDefaultColor(ParseHex(item.Profile.ColorHex));
         HideStatus();
     }
 
@@ -108,9 +134,12 @@ public partial class ColorProfileDialog : Window
         lstProfiles.SelectedItem = null;
         _suppressUpdate = true;
         txtName.Text = string.Empty;
-        txtExtensions.Text = string.Empty;
         _suppressUpdate = false;
-        SetColor(Palette[4]);
+        _editingExtensions.Clear();
+        _selectedRowExt = null;
+        RefreshAddCombo();
+        RefreshExtensionList(null);
+        SetDefaultColor(Palette[4]);
         btnDelete.IsEnabled = false;
         btnApply.IsEnabled = false;
         HideStatus();
@@ -119,6 +148,7 @@ public partial class ColorProfileDialog : Window
 
     private void BtnNew_Click(object sender, RoutedEventArgs e) => ClearEditor();
 
+    // ── Farbwähler ───────────────────────────────────────────────────────────
     private void SetColor(Color c)
     {
         colorPreview.Background = new SolidColorBrush(c);
@@ -128,6 +158,19 @@ public partial class ColorProfileDialog : Window
         btnApply.IsEnabled = true;
     }
 
+    private void SetDefaultColor(Color c)
+    {
+        _defaultColorHex = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+        lblColorTarget.Text = App.Loc.ProfileColorTargetDefault;
+        SetColor(c);
+    }
+
+    private Color CurrentDefaultColor()
+    {
+        try { return ParseHex(_defaultColorHex); }
+        catch { return Palette[4]; }
+    }
+
     private void TxtHex_Changed(object sender, TextChangedEventArgs e)
     {
         if (_suppressUpdate || txtHex.Text.Length != 6) return;
@@ -135,21 +178,126 @@ public partial class ColorProfileDialog : Window
         {
             var c = ParseHex("#" + txtHex.Text);
             colorPreview.Background = new SolidColorBrush(c);
+            ApplyColorToTarget(c);
         }
         catch { /* ungueltige Hex-Eingabe waehrend des Tippens ignorieren */ }
     }
 
-    private Color CurrentColor()
+    /// <summary>Überträgt die aktuelle Picker-Farbe auf die ausgewählte Zeile bzw. die Profil-Standardfarbe.</summary>
+    private void ApplyColorToTarget(Color c)
     {
-        try { return ParseHex("#" + txtHex.Text); }
-        catch { return Palette[4]; }
+        var hex = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+        if (_selectedRowExt != null)
+        {
+            _editingExtensions[_selectedRowExt] = hex;
+            RefreshExtensionList(_selectedRowExt);
+        }
+        else
+        {
+            _defaultColorHex = hex;
+        }
+        btnApply.IsEnabled = true;
     }
 
-    private static List<string> ParseExtensions(string raw)
-        => raw.Split([',', ';', ' ', '\n', '\r', '\t'], StringSplitOptions.RemoveEmptyEntries)
-              .Select(NormalizeExtension)
-              .Distinct(StringComparer.OrdinalIgnoreCase)
-              .ToList();
+    // ── Erweiterungsliste des Profils ────────────────────────────────────────
+    private void RefreshExtensionList(string? selectExt)
+    {
+        var items = _editingExtensions
+            .OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(kv => new ProfileExtItem
+            {
+                Extension = kv.Key,
+                ColorHex  = kv.Value,
+                Brush     = new SolidColorBrush(ParseHex(kv.Value))
+            })
+            .ToList();
+
+        lstProfileExtensions.ItemsSource = items;
+
+        if (selectExt != null)
+        {
+            var match = items.FirstOrDefault(i => string.Equals(i.Extension, selectExt, StringComparison.OrdinalIgnoreCase));
+            lstProfileExtensions.SelectedItem = match;
+        }
+    }
+
+    private void RefreshAddCombo()
+    {
+        var available = ColorScheme.AllExtensions
+            .Where(ext => !_editingExtensions.ContainsKey(ext))
+            .OrderBy(ext => ext, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        cmbAddExtension.ItemsSource = available;
+        cmbAddExtension.Text = string.Empty;
+    }
+
+    private void CmbAddExtension_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter)
+            AddExtension();
+    }
+
+    private void BtnAddExtension_Click(object sender, RoutedEventArgs e) => AddExtension();
+
+    private void AddExtension()
+    {
+        var raw = cmbAddExtension.Text;
+        if (string.IsNullOrWhiteSpace(raw)) return;
+
+        var ext = NormalizeExtension(raw);
+        if (ext.Length < 2 || ext.Contains(' ') || ext.Any(c => "\\/:*?\"<>|".Contains(c)))
+        {
+            ShowStatus(App.Loc.ColorAddExtInvalid);
+            return;
+        }
+
+        if (_editingExtensions.ContainsKey(ext))
+        {
+            ShowStatus(App.Loc.ColorAddExtDuplicate);
+            RefreshExtensionList(ext);
+            return;
+        }
+
+        // Vorhandene Erweiterung: ihre aktuelle Listenfarbe übernehmen (Startpunkt, änderbar).
+        // Neue, unbekannte Erweiterung: aktuelle Standardfarbe des Profils übernehmen.
+        var startColor = ColorScheme.EffectiveMap.TryGetValue(ext, out var existing)
+            ? existing
+            : CurrentDefaultColor();
+        _editingExtensions[ext] = $"#{startColor.R:X2}{startColor.G:X2}{startColor.B:X2}";
+
+        HideStatus();
+        RefreshAddCombo();
+        RefreshExtensionList(ext);
+    }
+
+    private void BtnRemoveExtension_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string ext }) return;
+
+        _editingExtensions.Remove(ext);
+        if (string.Equals(_selectedRowExt, ext, StringComparison.OrdinalIgnoreCase))
+            _selectedRowExt = null;
+
+        RefreshAddCombo();
+        RefreshExtensionList(null);
+        if (_selectedRowExt == null)
+            SetDefaultColor(CurrentDefaultColor());
+    }
+
+    private void LstProfileExtensions_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (lstProfileExtensions.SelectedItem is ProfileExtItem item)
+        {
+            _selectedRowExt = item.Extension;
+            lblColorTarget.Text = string.Format(App.Loc.ProfileColorTargetExtFmt, item.Extension);
+            SetColor(ParseHex(item.ColorHex));
+        }
+        else
+        {
+            _selectedRowExt = null;
+            lblColorTarget.Text = App.Loc.ProfileColorTargetDefault;
+        }
+    }
 
     private static string NormalizeExtension(string raw)
     {
@@ -167,25 +315,34 @@ public partial class ColorProfileDialog : Window
             return;
         }
 
-        var extensions = ParseExtensions(txtExtensions.Text);
-        if (extensions.Count == 0)
+        if (_editingExtensions.Count == 0)
         {
             ShowStatus(App.Loc.ProfileExtensionsRequired);
             return;
         }
 
-        var color = CurrentColor();
-        var hex = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+        // Neue, dem globalen Farbschema noch unbekannte Erweiterungen dort ebenfalls anlegen,
+        // damit sie künftig auch außerhalb dieses Profils in der Liste erscheinen.
+        foreach (var kv in _editingExtensions)
+        {
+            if (!ColorScheme.AllExtensions.Contains(kv.Key, StringComparer.OrdinalIgnoreCase))
+                ColorScheme.SetColor(kv.Key, ParseHex(kv.Value));
+        }
 
         if (_selected != null)
         {
             _selected.Name = name;
-            _selected.Extensions = extensions;
-            _selected.ColorHex = hex;
+            _selected.ColorHex = _defaultColorHex;
+            _selected.ExtensionColors = new Dictionary<string, string>(_editingExtensions, StringComparer.OrdinalIgnoreCase);
         }
         else
         {
-            _selected = new ColorProfile { Name = name, Extensions = extensions, ColorHex = hex };
+            _selected = new ColorProfile
+            {
+                Name = name,
+                ColorHex = _defaultColorHex,
+                ExtensionColors = new Dictionary<string, string>(_editingExtensions, StringComparer.OrdinalIgnoreCase)
+            };
             _profiles.Add(_selected);
         }
 
@@ -212,21 +369,19 @@ public partial class ColorProfileDialog : Window
 
     private void BtnApply_Click(object sender, RoutedEventArgs e)
     {
-        var extensions = ParseExtensions(txtExtensions.Text);
-        if (extensions.Count == 0)
+        if (_editingExtensions.Count == 0)
         {
             ShowStatus(App.Loc.ProfileExtensionsRequired);
             return;
         }
 
-        var color = CurrentColor();
         var name = string.IsNullOrWhiteSpace(txtName.Text) ? "?" : txtName.Text.Trim();
 
         AppliedProfile = new ColorProfile
         {
             Name = name,
-            Extensions = extensions,
-            ColorHex = $"#{color.R:X2}{color.G:X2}{color.B:X2}"
+            ColorHex = _defaultColorHex,
+            ExtensionColors = new Dictionary<string, string>(_editingExtensions, StringComparer.OrdinalIgnoreCase)
         };
         DialogResult = true;
     }

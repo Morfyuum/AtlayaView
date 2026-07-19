@@ -38,6 +38,9 @@ public sealed class SettingsStore
     public string UpdateCheckMode     { get; set; } = "manual";
     public string UpdateCheckInterval { get; set; } = "weekly";
 
+    // ── Schnellscan (NTFS-Fast-Path, Opt-in) ────────────────────────────────
+    public bool FastScanEnabled { get; set; } = false;
+
     // ── Datei-Pfad ───────────────────────────────────────────────────────────
     private static string FilePath =>
         Path.Combine(
@@ -78,6 +81,8 @@ public sealed class SettingsStore
 
             store.UpdateCheckMode     = UpdatePreferences.Instance.CheckMode;
             store.UpdateCheckInterval = UpdatePreferences.Instance.CheckInterval;
+
+            store.FastScanEnabled = ScanPreferences.Instance.FastScanEnabled;
 
             store.FileOpeners = new Dictionary<string, string>(FileOpenerStore.Openers);
 
@@ -132,6 +137,8 @@ public sealed class SettingsStore
 
         UpdatePreferences.Instance.CheckMode     = UpdateCheckMode;
         UpdatePreferences.Instance.CheckInterval = UpdateCheckInterval;
+
+        ScanPreferences.Instance.FastScanEnabled = FastScanEnabled;
 
         FileOpenerStore.Load(FileOpeners);
     }

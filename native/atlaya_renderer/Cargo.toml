@@ -1,6 +1,6 @@
 [package]
 name = "atlaya_renderer"
-version = "2.0.16"
+version = "2.0.27"
 edition = "2021"
 
 [lib]

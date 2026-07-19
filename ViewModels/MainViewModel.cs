@@ -187,10 +187,23 @@ public sealed class MainViewModel : ObservableObject
 
         _scanCts = new CancellationTokenSource();
         ScanEtaText = string.Empty;
-        var scanner = CreateInteractiveScanner(generation);
         try
         {
-            var rootNode = await scanner.ScanAsync(path, _scanCts.Token);
+            // NTFS-Schnellscan (Opt-in, braucht Adminrechte): nur für Laufwerkswurzeln, sonst/
+            // bei jedem Fehler automatisch normaler Scanner (unverändertes Verhalten).
+            // Token vorab in eine lokale Variable kopieren: _scanCts ist ein Feld und könnte
+            // durch einen neu gestarteten Scan neu zugewiesen werden, bevor das Lambda unten
+            // tatsächlich auf einem Threadpool-Thread ausgeführt wird.
+            var fastScanToken = _scanCts.Token;
+            FileSystemNode? rootNode = await Task.Run(() =>
+                FastScanCoordinator.TryScan(path, fastScanToken, out var fastRoot) ? fastRoot : null,
+                fastScanToken);
+
+            if (rootNode == null)
+            {
+                var scanner = CreateInteractiveScanner(generation);
+                rootNode = await scanner.ScanAsync(path, _scanCts.Token);
+            }
             if (generation != _scanGeneration) return;
 
             ApplyScanResult(rootNode, path);
@@ -321,6 +334,14 @@ public sealed class MainViewModel : ObservableObject
         // dann unsichtbar weiter, bis auch die langsamste Platte fertig war.
         _multiDriveCts?.Dispose();
         _multiDriveCts = new CancellationTokenSource();
+
+        // Ohne dies blieb ein Breadcrumb aus einer vorherigen Einzellaufwerk-Ansicht (z. B.
+        // "G:\ >") ueber der neuen Multi-Laufwerk-Ansicht stehen, obwohl er dort nicht mehr
+        // zur Navigation gehoert -- verwirrend zusammen mit dem Bugreport zu "Kissen nicht
+        // aktivierbar" (Klick auf ein Multi-Laufwerk-Kissen navigiert nicht wie im Breadcrumb
+        // suggeriert, sondern wechselt in die Einzelansicht dieses Laufwerks).
+        _navBack.Clear();
+        Breadcrumb.Clear();
 
         Interlocked.Increment(ref _scanGeneration);
         IsScanning = true;

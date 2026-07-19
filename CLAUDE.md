@@ -169,6 +169,28 @@ hier nachsehen:
    eine echte, parallel laufende Chris-Instanz treffen – immer nach PID killen, wenn eine
    reale Nutzer-Instanz dieselbe exe teilen könnte.
 
+## Schneller Scan / NTFS-Fast-Path (seit v2.0.19, Stand 2026-07-19: UNGETESTET im echten Admin-Betrieb)
+Opt-in-Feature (Einstellungen → Scan-Geschwindigkeit → „Schneller Scan", standardmäßig AUS),
+implementiert in `Core/NtfsFastScanner.cs` (rohe `DeviceIoControl`-Aufrufe: `FSCTL_ENUM_USN_DATA`
+für den ersten Volumen-Scan, `FSCTL_QUERY_USN_JOURNAL`/`FSCTL_READ_USN_JOURNAL` für inkrementelle
+Re-Scans), `Core/FileTreeCache.cs` (Baum+Cursor-Persistierung unter
+`%LocalAppData%\AtlayaView\fastscan-cache\`), `Core/FastScanCoordinator.cs` (Entscheidungslogik
++ Fallback), `Core/ElevationHelper.cs` (Admin-Check + `runas`-Selbst-Neustart).
+
+**Wichtig für jede künftige Bearbeitung dieses Bereichs:** Diese Komponenten wurden von Claude
+blind implementiert – die Entwicklungsumgebung hatte keine Administratorrechte, und ein
+Volume-Handle (`\\.\C:`) für `FSCTL_QUERY_USN_JOURNAL`/`FSCTL_ENUM_USN_DATA` verlangt laut
+Microsoft-Doku zwingend `SE_BACKUP_NAME`-Privileg bzw. Adminrechte (unabhängig davon, ob nur das
+Journal oder die volle MFT-Enumeration gelesen wird – beides sperrt Windows für normale Prozesse).
+Getestet wurde deshalb nur der **nicht-elevated Pfad** (Gate-Logik: `FastScanCoordinator.TryScan`
+liefert bei fehlenden Rechten, bei Unterordner-Scans und bei jedem Fehler sauber `false`, normaler
+`FileSystemScanner` läuft dann unverändert weiter wie vor v2.0.19). Der eigentliche NTFS-Zugriff,
+das USN-Record-Parsing und die Rename/Delete-Erkennung beim inkrementellen Update sind **nicht**
+live verifiziert. Vor dem nächsten Ausbau (oder bei einer „Schneller Scan zeigt falsche Größen"-
+Meldung von Chris) zuerst hier nachsehen, ob Chris das Feature inzwischen selbst mit Adminrechten
+getestet und bestätigt hat (siehe Auto-Memory `atlayaview-fast-scan-status`); wenn nicht, gilt der
+Code weiterhin als unverifiziert, auch wenn er kompiliert und ausliefert.
+
 ## Technische Hinweise (aus `docs/release-notes.md`)
 - `AtlayaView.csproj` schließt `obj`, `bin`, `dist/publish` und `.artifacts` explizit von der
   Kompilierung aus, um WPF-Doppeldefinitionen aus `wpftmp`-Zwischenständen zu vermeiden.

@@ -30,10 +30,16 @@
     </Grid.RowDefinitions>
 
     <!-- MENÜLEISTE -->
-    <Menu x:Name="mainMenu" Grid.Row="0"
-          Background="{StaticResource BgToolbarBrush}"
-          BorderBrush="{StaticResource BorderBrush2}"
-          BorderThickness="0,0,0,1">
+    <Border Grid.Row="0"
+            Background="{StaticResource BgToolbarBrush}"
+            BorderBrush="{StaticResource BorderBrush2}"
+            BorderThickness="0,0,0,1">
+    <DockPanel LastChildFill="True">
+      <TextBlock DockPanel.Dock="Right" Text="{Binding HeaderVersionText, Source={x:Static app:App.Loc}}"
+                 Foreground="{StaticResource TextSecondaryBrush}" FontWeight="Bold" FontSize="12"
+                 VerticalAlignment="Center" Margin="0,0,10,0"
+                 ToolTip="{Binding MenuAbout, Source={x:Static app:App.Loc}}"/>
+    <Menu x:Name="mainMenu" Background="Transparent">
       <MenuItem Header="{Binding MenuFile,         Source={x:Static app:App.Loc}}">
         <MenuItem Header="{Binding MenuOpenFolder,  Source={x:Static app:App.Loc}}" Command="{Binding OpenFolderCommand}" InputGestureText="Ctrl+O"/>
         <Separator/>
@@ -74,6 +80,8 @@
         <MenuItem Header="{Binding MenuPrivacy,     Source={x:Static app:App.Loc}}" Click="MenuPrivacy_Click"/>
       </MenuItem>
     </Menu>
+    </DockPanel>
+    </Border>
 
     <!-- TOOLBAR -->
     <Border Grid.Row="1"
@@ -188,15 +196,16 @@
         <Border HorizontalAlignment="Center" VerticalAlignment="Center"
                 Background="{StaticResource BgPanelBrush}"
                 BorderBrush="{StaticResource AccentBrush}"
-                BorderThickness="1" CornerRadius="8" Padding="32,24" MinWidth="400">
+                BorderThickness="1" CornerRadius="8" Padding="32,24" Width="440">
           <StackPanel>
             <TextBlock Text="{Binding ScanOverlayTitle, Source={x:Static app:App.Loc}}" FontSize="18" FontWeight="SemiBold"
                        Foreground="{StaticResource AccentBrush}"
                        HorizontalAlignment="Center" Margin="0,0,0,16"/>
             <TextBlock Text="{Binding ScanRootPath}" FontSize="13" FontWeight="SemiBold"
                        Foreground="{StaticResource TextPrimaryBrush}"
-                       HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
-                       MaxWidth="340" Margin="0,0,0,4"/>
+                       HorizontalAlignment="Center" TextAlignment="Center"
+                       TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                       Width="376" Height="36" Margin="0,0,0,4"/>
             <TextBlock Text="{Binding ScanDriveInfo}" FontSize="12"
                        Foreground="{StaticResource TextSecondaryBrush}"
                        HorizontalAlignment="Center" Margin="0,0,0,16"/>
@@ -224,8 +233,9 @@
             <!-- aktueller Pfad (gedimmt) -->
             <TextBlock Text="{Binding ScanInfo}" FontSize="10"
                        Foreground="{StaticResource TextSecondaryBrush}"
-                       HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
-                       MaxWidth="340" Opacity="0.65" Margin="0,0,0,16"/>
+                       HorizontalAlignment="Center" TextAlignment="Center"
+                       TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                       Width="376" Height="28" Opacity="0.65" Margin="0,0,0,16"/>
                     <Button x:Name="btnCancelScanOverlay" Style="{StaticResource ToolButtonStyle}" Content="{Binding BtnCancelText, Source={x:Static app:App.Loc}}"
                       Click="CancelScanButton_Click"
                     Foreground="#FFFF6B6B" HorizontalAlignment="Center" Padding="20,6"/>

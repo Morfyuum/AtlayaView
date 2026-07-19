@@ -72,15 +72,41 @@
                    Text="{Binding ProfileExtensionsLabel, Source={x:Static app:App.Loc}}"
                    FontSize="11" FontWeight="SemiBold"
                    Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-        <TextBox DockPanel.Dock="Top" x:Name="txtExtensions" Margin="0,0,0,4"
-                 TextWrapping="Wrap" AcceptsReturn="False" Height="52"/>
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+          <Button DockPanel.Dock="Right" x:Name="btnAddExtension" Content="+" Width="30"
+                  Style="{StaticResource ToolButtonStyle}" Margin="6,0,0,0" Click="BtnAddExtension_Click"/>
+          <ComboBox x:Name="cmbAddExtension" IsEditable="True" KeyDown="CmbAddExtension_KeyDown"/>
+        </DockPanel>
+        <Border DockPanel.Dock="Top" Height="120" Margin="0,0,0,4"
+                BorderBrush="{StaticResource BorderBrush2}" BorderThickness="1" CornerRadius="4">
+          <ListBox x:Name="lstProfileExtensions" BorderThickness="0" Background="Transparent"
+                   SelectionChanged="LstProfileExtensions_SelectionChanged">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="4,2">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                  </Grid.ColumnDefinitions>
+                  <Rectangle Grid.Column="0" Width="12" Height="12" Fill="{Binding Brush}"
+                             RadiusX="3" RadiusY="3" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="1" Text="{Binding Extension}" VerticalAlignment="Center"/>
+                  <Button Grid.Column="2" Content="×" Width="20" Height="20" Padding="0"
+                          Style="{StaticResource ToolButtonStyle}" Tag="{Binding Extension}"
+                          Click="BtnRemoveExtension_Click"/>
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Border>
         <TextBlock DockPanel.Dock="Top"
                    Text="{Binding ProfileExtensionsHint, Source={x:Static app:App.Loc}}"
-                   FontSize="10" Foreground="{StaticResource TextSecondaryBrush}"
+                   FontSize="10" TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}"
                    Margin="0,0,0,14"/>
 
-        <TextBlock DockPanel.Dock="Top"
-                   Text="{Binding ProfileColorLabel, Source={x:Static app:App.Loc}}"
+        <TextBlock DockPanel.Dock="Top" x:Name="lblColorTarget"
+                   Text="{Binding ProfileColorTargetDefault, Source={x:Static app:App.Loc}}"
                    FontSize="11" FontWeight="SemiBold"
                    Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
