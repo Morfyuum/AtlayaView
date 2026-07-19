@@ -13,8 +13,8 @@ AtlayaView scans one or more drives and turns used storage into an instantly rea
 **Source Repository:** https://github.com/Morfyuum/AtlayaView  
 **Releases:** https://github.com/Morfyuum/AtlayaView/releases  
 **Public Downloads:**  
-Full: https://github.com/Morfyuum/AtlayaView/releases/download/v2.0.16/AtlayaView-2.0.16-win-x64-full.zip  
-FX: https://github.com/Morfyuum/AtlayaView/releases/download/v2.0.16/AtlayaView-2.0.16-win-x64-fx.zip
+Full: https://github.com/Morfyuum/AtlayaView/releases/download/v2.0.35/AtlayaView-2.0.35-win-x64-full.zip  
+FX: https://github.com/Morfyuum/AtlayaView/releases/download/v2.0.35/AtlayaView-2.0.35-win-x64-fx.zip
 
 ![AtlayaView logo](Resources/atlaya.png)
 
@@ -83,8 +83,8 @@ pwsh -File .\build-hybrid.ps1 -Configuration Release
 
 Current public downloads:
 
-- Full: [AtlayaView-2.0.16-win-x64-full.zip](https://github.com/Morfyuum/AtlayaView/releases/download/v2.0.16/AtlayaView-2.0.16-win-x64-full.zip)
-- FX: [AtlayaView-2.0.16-win-x64-fx.zip](https://github.com/Morfyuum/AtlayaView/releases/download/v2.0.16/AtlayaView-2.0.16-win-x64-fx.zip)
+- Full: [AtlayaView-2.0.35-win-x64-full.zip](https://github.com/Morfyuum/AtlayaView/releases/download/v2.0.35/AtlayaView-2.0.35-win-x64-full.zip)
+- FX: [AtlayaView-2.0.35-win-x64-fx.zip](https://github.com/Morfyuum/AtlayaView/releases/download/v2.0.35/AtlayaView-2.0.35-win-x64-fx.zip)
 
 ## Releases
 
